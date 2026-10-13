@@ -1,0 +1,3 @@
+# Claude Code plan files (local only)
+.claude/plans/
+.DS_Store

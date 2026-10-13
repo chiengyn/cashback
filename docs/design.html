@@ -1,0 +1,918 @@
+<title>Hoàn Tiền Link</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: tài liệu kỹ thuật một cột đọc, mục lục dính bên trái trên desktop; sơ đồ & bảng được tràn rộng hơn cột chữ */
+:root {
+  --bg: #f6f8f7;
+  --surface: #ffffff;
+  --ink: #14201b;
+  --muted: #5a6b64;
+  --line: #d9e2de;
+  --accent: #0a7a55;      /* xanh "tiền về" — màu của tài liệu, không phải của app */
+  --accent-soft: #e2f3ec;
+  --warn: #a35a00;
+  --warn-soft: #fff1dc;
+  --code-bg: #eef3f1;
+  /* Màu của app (wireframe): tông sáng kiểu sàn TMĐT, cố ý giữ nguyên ở cả hai theme */
+  --app-primary: #ff5b2e;
+  --app-primary-2: #ff3d6e;
+  --app-yellow: #ffc93c;
+  --app-green: #13a150;
+  --app-bg: #fff4ef;
+  --app-card: #ffffff;
+  --app-ink: #231a16;
+  --app-muted: #85766f;
+  --app-line: #f3e3dc;
+  --f-display: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --s-xs: .8125rem; --s-sm: .9rem; --s-md: 1rem; --s-lg: 1.25rem; --s-xl: 1.6rem; --s-2xl: 2.4rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1513; --surface: #151d1a; --ink: #e3ece8; --muted: #94a69e; --line: #26332e;
+    --accent: #3fc99a; --accent-soft: #143127; --warn: #f0b056; --warn-soft: #2e2311;
+    --code-bg: #1b2522; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1513; --surface: #151d1a; --ink: #e3ece8; --muted: #94a69e; --line: #26332e;
+  --accent: #3fc99a; --accent-soft: #143127; --warn: #f0b056; --warn-soft: #2e2311;
+  --code-bg: #1b2522; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: var(--s-md); line-height: 1.65; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px;
+  display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 56px; }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: var(--s-sm); }
+nav.toc .label { font-size: var(--s-xs); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+nav.toc ol { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; counter-reset: t; }
+nav.toc li { counter-increment: t; }
+nav.toc a { color: var(--ink); text-decoration: none; display: flex; gap: 10px; }
+nav.toc a::before { content: counter(t); color: var(--muted); font-family: var(--f-mono); font-size: var(--s-xs); width: 1.2em; padding-top: 2px; }
+nav.toc a:hover { color: var(--accent); }
+main { min-width: 0; }
+
+header.doc { display: grid; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.eyebrow { font-size: var(--s-xs); text-transform: uppercase; letter-spacing: .1em; color: var(--accent); font-weight: 700; }
+h1 { font-family: var(--f-display); font-size: var(--s-2xl); line-height: 1.15; font-weight: 800; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.lede { font-size: var(--s-lg); color: var(--muted); max-width: 62ch; margin: 0; line-height: 1.55; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: var(--s-sm); color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+.changes { font-size: var(--s-sm); background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; max-width: 76ch; }
+.changes b { color: var(--accent); }
+
+.linkflow { margin-top: 8px; display: grid; gap: 6px; font-family: var(--f-mono); font-size: var(--s-xs); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; overflow-x: auto; }
+.linkflow .row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; white-space: nowrap; }
+.linkflow .k { color: var(--muted); font-family: var(--f-body); font-size: var(--s-xs); }
+.linkflow mark { background: var(--accent-soft); color: var(--accent); padding: 0 3px; border-radius: 3px; font-weight: 600; }
+
+section { padding-top: 48px; }
+h2 { font-family: var(--f-display); font-size: var(--s-xl); font-weight: 700; letter-spacing: -.01em; margin: 0 0 6px; line-height: 1.25; text-wrap: balance; display: flex; gap: 12px; align-items: baseline; }
+h2 .n { font-family: var(--f-mono); font-size: var(--s-sm); color: var(--accent); font-weight: 600; }
+h3 { font-size: var(--s-lg); font-weight: 700; margin: 32px 0 8px; text-wrap: balance; }
+p, li { max-width: 68ch; }
+p { margin: 10px 0; }
+ul, ol { padding-left: 1.25em; margin: 10px 0; }
+li { margin: 4px 0; }
+code { font-family: var(--f-mono); font-size: .86em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { font-family: var(--f-mono); font-size: .8rem; line-height: 1.55; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 14px 0; }
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--muted); }
+.muted { color: var(--muted); }
+
+.verify { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--warn); background: var(--warn-soft); padding: 1px 7px; border-radius: 999px; vertical-align: 2px; white-space: nowrap; }
+.callout { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; max-width: 72ch; }
+.callout p { margin: 4px 0; }
+
+.tbl { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: var(--s-sm); }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: var(--s-xs); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; background: var(--code-bg); }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tfoot td { font-weight: 700; }
+
+figure { margin: 22px 0; }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow-x: auto; }
+.fig svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--ink); }
+figcaption { font-size: var(--s-sm); color: var(--muted); margin-top: 8px; max-width: 72ch; }
+svg text { font-family: var(--f-body); }
+.fig .s-acc { stroke: var(--accent); }
+.fig .f-acc { fill: var(--accent); }
+.fig .s-warn { stroke: var(--warn); }
+.fig .f-warn { fill: var(--warn); }
+svg .mono { font-family: var(--f-mono); }
+
+.math { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 18px 0; }
+.math div { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; }
+.math .k { font-size: var(--s-xs); color: var(--muted); }
+.math .v { font-size: var(--s-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.math .v.acc { color: var(--accent); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+.grid2 > div { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+.panel h4 { margin: 0 0 6px; font-size: var(--s-md); }
+.panel ul { margin: 6px 0 0; }
+
+.chip { display: inline-block; font-size: .68rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--code-bg); color: var(--muted); white-space: nowrap; }
+.chip.ok { background: var(--accent-soft); color: var(--accent); }
+.chip.wait { background: var(--warn-soft); color: var(--warn); }
+
+/* Bảng màu của app */
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+.sw { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.sw .chipc { height: 56px; }
+.sw .info { padding: 8px 12px; display: grid; gap: 1px; font-size: var(--s-xs); }
+.sw .info b { font-size: var(--s-sm); }
+.sw .info code { justify-self: start; }
+
+/* Wireframes: dùng màu app, cố định cho cả hai theme của tài liệu */
+.phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; margin: 20px 0; }
+.phones > div { min-width: 0; }
+.phone { border: 7px solid var(--app-ink); border-radius: 30px; overflow: hidden; background: var(--app-bg); color: var(--app-ink); display: flex; flex-direction: column; min-height: 470px; font-size: var(--s-xs); line-height: 1.45; }
+.cap { text-align: center; font-size: var(--s-xs); color: var(--muted); margin-top: 6px; }
+.w-head { background: linear-gradient(135deg, var(--app-primary), var(--app-primary-2)); color: #fff; padding: 12px 12px 14px; display: grid; gap: 10px; }
+.w-head .top { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: var(--s-sm); }
+.w-pill { background: rgba(255,255,255,.22); color: #fff; border-radius: 999px; padding: 2px 9px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+.w-input { background: var(--app-card); color: var(--app-muted); border-radius: 10px; padding: 11px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.w-input b { color: var(--app-primary); white-space: nowrap; }
+.w-body { padding: 10px; display: grid; gap: 9px; align-content: start; flex: 1; }
+.w-card { background: var(--app-card); border-radius: 12px; padding: 9px; display: grid; gap: 6px; }
+.w-row { display: flex; gap: 8px; align-items: center; }
+.w-thumb { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, #ffe1d6, #ffd0dc); flex: none; }
+.w-grow { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.w-line { height: 7px; border-radius: 4px; background: var(--app-line); }
+.w-line.s { width: 55%; }
+.w-cb { display: inline-block; background: var(--app-yellow); color: var(--app-ink); font-weight: 800; border-radius: 6px; padding: 1px 6px; font-size: .68rem; white-space: nowrap; justify-self: start; }
+.w-promo { background: linear-gradient(90deg, var(--app-yellow), #ffe08a); color: var(--app-ink); border-radius: 12px; padding: 9px 10px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.w-promo span { font-weight: 600; font-size: .68rem; }
+.w-btn { background: linear-gradient(135deg, var(--app-primary), var(--app-primary-2)); color: #fff; text-align: center; padding: 10px; border-radius: 10px; font-weight: 800; }
+.w-btn.ghost { background: var(--app-card); color: var(--app-primary); border: 1.5px solid var(--app-primary); }
+.w-img { aspect-ratio: 4 / 3; max-width: 100%; border-radius: 12px; background: linear-gradient(135deg, #ffe1d6, #ffd0dc); }
+.w-price { color: var(--app-primary); font-weight: 800; font-size: 1.05rem; }
+.w-muted { color: var(--app-muted); }
+.w-big { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.w-note { background: #fff1c9; color: #7a5300; border-radius: 8px; padding: 7px 9px; font-size: .7rem; }
+.w-tabs { display: flex; gap: 14px; border-bottom: 1px solid var(--app-line); background: var(--app-card); padding: 8px 10px 0; font-weight: 600; }
+.w-tabs span { padding-bottom: 6px; color: var(--app-muted); white-space: nowrap; }
+.w-tabs .on { color: var(--app-primary); border-bottom: 2px solid var(--app-primary); }
+.w-st { font-size: .65rem; font-weight: 800; border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
+.w-st.wait { background: #fff1c9; color: #8a5d00; }
+.w-st.ok { background: #dcf5e6; color: #0d7a3c; }
+.w-plus { color: var(--app-green); font-weight: 800; white-space: nowrap; }
+.w-tabbar { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--app-card); border-top: 1px solid var(--app-line); text-align: center; font-size: .62rem; padding: 7px 0; color: var(--app-muted); }
+.w-tabbar .on { color: var(--app-primary); font-weight: 800; }
+.w-tabbar i { display: block; width: 16px; height: 16px; margin: 0 auto 2px; border-radius: 5px; background: currentColor; opacity: .35; }
+.w-tabbar .on i { opacity: 1; }
+
+.phase { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.phase:last-child { border-bottom: 0; }
+.phase .when { font-family: var(--f-mono); font-size: var(--s-xs); color: var(--muted); padding-top: 3px; }
+.phase h4 { margin: 0 0 4px; font-size: var(--s-md); }
+.phase p { margin: 0; }
+
+.qs { counter-reset: q; list-style: none; padding: 0; display: grid; gap: 12px; }
+.qs li { counter-increment: q; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; max-width: 76ch; }
+.qs li::before { content: "Q" counter(q); font-family: var(--f-mono); font-weight: 600; color: var(--accent); font-size: var(--s-sm); padding-top: 2px; }
+
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-inline: 16px; padding-block: 24px 60px; }
+  nav.toc { position: static; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+  nav.toc ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  h1 { font-size: 1.9rem; }
+  .phase { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .linkflow .row { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Mục lục">
+    <div class="label">Mục lục</div>
+    <ol>
+      <li><a href="#tong-quan">Tổng quan</a></li>
+      <li><a href="#affiliate">Affiliate từng sàn</a></li>
+      <li><a href="#system">System design</a></li>
+      <li><a href="#uiux">UI / UX</a></li>
+      <li><a href="#mobile">App React Native</a></li>
+      <li><a href="#deploy">Deployment</a></li>
+      <li><a href="#roadmap">Roadmap</a></li>
+      <li><a href="#rui-ro">Rủi ro &amp; câu hỏi</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="doc">
+      <div class="eyebrow">Thiết kế high-level · bản nháp để review</div>
+      <h1>App hoàn tiền khi mua trên Shopee, Lazada, TikTok Shop</h1>
+      <p class="lede">Người dùng dán link sản phẩm, hệ thống đổi sang link affiliate có gắn mã của mình kèm mã theo dõi riêng, rồi chuyển họ tới trang sản phẩm. Khi sàn duyệt đơn, một phần hoa hồng được cộng vào ví của người dùng.</p>
+      <div class="meta">
+        <span><b>Trạng thái:</b> đã có code app mobile (dữ liệu mẫu), chưa có backend</span>
+        <span><b>Cập nhật:</b> 13/10/2026 (bản 3)</span>
+        <span><b>Cần review:</b> mục 2, 3, 5 và câu hỏi ở mục 8</span>
+      </div>
+      <div class="changes"><b>Bản 3:</b> người dùng tải app từ App Store / Google Play thay vì dùng PWA. Thêm mục 5 về app React Native (Expo) đã viết trong thư mục <code>mobile/</code>. Nút “Mua ngay” trong app mở thẳng link affiliate để app sàn bắt được universal link. Share extension trên iOS có ngay từ MVP.</div>
+      <div class="changes"><b>Bản 2:</b> stack rút gọn còn Next.js trên Vercel và một Postgres. Bỏ Redis và Cloudflare: cache và rate limit dùng bảng có index. Đồng bộ đơn chạy bằng Vercel Cron, khoá chống chạy trùng bằng bảng <code>cron_jobs</code>. Giao diện app chuyển sang tông màu sáng kiểu sàn thương mại điện tử.</div>
+      <div class="linkflow" aria-label="Ví dụ link trước và sau khi đổi">
+        <div class="row"><span class="k">Người dùng dán</span><span>https://s.shopee.vn/6AbCdEf123</span></div>
+        <div class="row"><span class="k">Sau khi resolve</span><span>https://shopee.vn/product/<mark>88201234</mark>/<mark>23456789012</mark></span></div>
+        <div class="row"><span class="k">Link affiliate</span><span>https://s.shopee.vn/an_redir?…&amp;affiliate_id=<mark>MÃ_CỦA_BẠN</mark>&amp;sub_id=<mark>k7Qx2mPa</mark></span></div>
+        <div class="row"><span class="k">Bấm “Mua ngay”</span><span>POST /api/clicks/<mark>k7Qx2mPa</mark>/open → app mở link affiliate → app Shopee</span></div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section id="tong-quan">
+      <h2><span class="n">1</span>Tổng quan &amp; mục tiêu</h2>
+      <p>Sàn thương mại điện tử trả hoa hồng cho đơn hàng đến từ link affiliate. App đứng giữa: tạo link affiliate thay người dùng, ghi nhận ai đã bấm link nào, rồi chia lại phần lớn hoa hồng cho người mua. Doanh thu của app là phần hoa hồng giữ lại.</p>
+
+      <h3>Ví dụ một đơn hàng</h3>
+      <div class="math">
+        <div><span class="k">Giá trị đơn hợp lệ</span><span class="v">450.000₫</span></div>
+        <div><span class="k">Hoa hồng sàn (6%)</span><span class="v">27.000₫</span></div>
+        <div><span class="k">App giữ lại (30%)</span><span class="v">8.100₫</span></div>
+        <div><span class="k">Hoàn cho người dùng (70%)</span><span class="v acc">18.900₫</span></div>
+      </div>
+      <p class="muted">Tỉ lệ hoa hồng khác nhau theo ngành hàng và theo chiến dịch; tỉ lệ chia 70/30 là tham số cấu hình được.</p>
+
+      <h3>Phạm vi</h3>
+      <div class="grid2">
+        <div class="panel">
+          <h4>MVP</h4>
+          <ul>
+            <li>App iOS / Android (React Native) trên App Store và Google Play</li>
+            <li>Dán link hoặc chia sẻ từ app sàn → xem trước → chuyển tới sàn</li>
+            <li>Đăng nhập (Zalo / Google / SĐT)</li>
+            <li>Đồng bộ đơn từ sàn, hiển thị trạng thái</li>
+            <li>Ví, yêu cầu rút tiền, admin duyệt và chuyển khoản thủ công</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h4>Sau MVP</h4>
+          <ul>
+            <li>Giới thiệu bạn bè (referral)</li>
+            <li>Tự động chi trả qua ngân hàng / ví điện tử</li>
+            <li>Gợi ý deal, so sánh % hoàn giữa các sàn</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Chỉ số theo dõi</h3>
+      <ul>
+        <li>Tỉ lệ đổi link thành công (mục tiêu &gt; 98% với link hợp lệ của 3 sàn)</li>
+        <li>Thời gian từ lúc dán tới lúc có preview: p95 &lt; 1,5 giây</li>
+        <li>Tỉ lệ click → đơn được sàn ghi nhận (phát hiện sớm việc mất attribution)</li>
+        <li>Thời gian trung bình từ đặt đơn tới tiền khả dụng trong ví</li>
+      </ul>
+    </section>
+
+    <!-- 2 -->
+    <section id="affiliate">
+      <h2><span class="n">2</span>Cơ chế affiliate từng sàn</h2>
+      <p>Đây là phần quyết định tính khả thi. Mỗi sàn cần cho phép ba việc: tạo link affiliate bằng API, gắn một tham số tự do (<code>sub_id</code>) để biết click thuộc về người dùng nào, và trả về báo cáo đơn hàng có kèm <code>sub_id</code> đó.</p>
+
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Sàn</th><th>Tạo link</th><th>Gắn người dùng</th><th>Lấy đơn hàng</th><th>Độ chắc chắn</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>Shopee</b></td>
+              <td>Shopee Affiliate Open API (GraphQL), mutation <code>generateShortLink</code></td>
+              <td><code>subIds</code>, tối đa 5 giá trị; dùng 1 slot cho <code>click_id</code></td>
+              <td>Query <code>conversionReport</code> / <code>validatedReport</code></td>
+              <td><span class="chip ok">Có API</span> <span class="verify">Cần xác minh quyền truy cập</span></td>
+            </tr>
+            <tr>
+              <td><b>Lazada</b></td>
+              <td>Lazada Open Platform, nhóm API affiliate (tạo deeplink / batch link)</td>
+              <td><code>subId1…subId6</code></td>
+              <td>API báo cáo conversion</td>
+              <td><span class="chip ok">Có API</span> <span class="verify">Cần xác minh</span></td>
+            </tr>
+            <tr>
+              <td><b>TikTok Shop</b></td>
+              <td>Chương trình affiliate chủ yếu cho creator; publisher bên ngoài có thể phải đi qua network (AccessTrade, Involve Asia, Ecomobi…)</td>
+              <td><code>sub_id</code> của network</td>
+              <td>Postback hoặc API báo cáo của network</td>
+              <td><span class="chip wait">Chưa rõ</span> <span class="verify">Cần xác minh</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Phương án dự phòng: đi qua một affiliate network</h3>
+      <p>Thay vì tích hợp từng sàn, có thể dùng một network đã có hợp đồng với cả ba sàn. Lợi ích: một API tạo link, một nguồn báo cáo. Đánh đổi: network giữ một phần hoa hồng nên tỉ lệ thực nhận thấp hơn, và phụ thuộc thêm một bên trung gian. Code tách lớp <code>PlatformAdapter</code> để đổi giữa tích hợp trực tiếp và qua network theo từng sàn.</p>
+
+      <div class="callout">
+        <p><b>Việc phải làm trước khi viết code</b></p>
+        <ul>
+          <li>Đọc điều khoản chương trình affiliate của từng sàn: có cho phép mô hình hoàn tiền (incentivized traffic) không. Một số chương trình cấm hoặc yêu cầu đăng ký riêng.</li>
+          <li>Xin quyền Open API trên tài khoản affiliate của bạn (Shopee cấp <code>AppID</code> / <code>Secret</code> riêng, không phải tài khoản nào cũng có).</li>
+          <li>Kiểm tra TikTok Shop có chương trình cho publisher tại Việt Nam hay chỉ qua network.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section id="system">
+      <h2><span class="n">3</span>System design</h2>
+      <p>Toàn bộ hệ thống là một app Next.js trên Vercel cộng một database Postgres. Không có cache riêng, không có hàng đợi, không có server phải tự quản lý. Lượng truy cập giai đoạn đầu (vài nghìn click mỗi ngày) nằm xa giới hạn của cách làm này.</p>
+
+      <figure>
+        <div class="fig">
+          <svg viewBox="0 0 1000 410" role="img" aria-label="Kiến trúc: app iOS/Android gọi backend Next.js trên Vercel; Link Service gọi API affiliate của sàn để tạo link có sub_id; Redirect chuyển người dùng tới app sàn; Vercel Cron gọi route đồng bộ đơn, route này kéo báo cáo từ sàn; mọi dữ liệu nằm trong một Postgres.">
+            <defs>
+              <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+            </defs>
+            <g fill="none" stroke="currentColor" stroke-width="1.4">
+              <rect x="20" y="140" width="130" height="60" rx="10"/>
+              <rect x="20" y="302" width="130" height="56" rx="10"/>
+              <rect x="200" y="30" width="330" height="350" rx="14" stroke-dasharray="5 4" opacity=".7"/>
+              <rect x="220" y="54" width="290" height="38" rx="8"/>
+              <rect x="220" y="104" width="290" height="38" rx="8" class="s-acc" stroke-width="2"/>
+              <rect x="220" y="154" width="290" height="38" rx="8" class="s-acc" stroke-width="2"/>
+              <rect x="220" y="204" width="290" height="38" rx="8"/>
+              <rect x="220" y="254" width="290" height="38" rx="8"/>
+              <rect x="220" y="312" width="290" height="50" rx="8" class="s-warn" stroke-width="2"/>
+              <rect x="590" y="210" width="180" height="170" rx="10"/>
+              <rect x="830" y="30" width="140" height="170" rx="12" stroke-dasharray="5 4" opacity=".7"/>
+              <rect x="845" y="62" width="110" height="34" rx="7"/>
+              <rect x="845" y="106" width="110" height="34" rx="7"/>
+              <rect x="845" y="150" width="110" height="34" rx="7"/>
+              <rect x="830" y="236" width="140" height="56" rx="10"/>
+            </g>
+            <g fill="currentColor" font-size="13" text-anchor="middle">
+              <text x="85" y="166" font-weight="700">Người dùng</text>
+              <text x="85" y="184" font-size="11" opacity=".75">App iOS / Android</text>
+              <text x="85" y="326" font-weight="700">Vercel Cron</text>
+              <text x="85" y="344" font-size="11" opacity=".75">mỗi 30 phút</text>
+              <text x="365" y="22" font-size="12" opacity=".8">Next.js · Vercel (region sin1)</text>
+              <text x="365" y="78">API cho app · trang admin</text>
+              <text x="365" y="128" font-weight="700" class="f-acc">Link Service</text>
+              <text x="365" y="178" font-weight="700" class="mono f-acc" font-size="12">/api/clicks/{id}/open</text>
+              <text x="365" y="228">Ví · Rút tiền API</text>
+              <text x="365" y="278">Admin</text>
+              <text x="365" y="333" font-weight="700" class="mono f-warn" font-size="12">/api/cron/sync-orders</text>
+              <text x="365" y="351" font-size="11" opacity=".75">giành khoá trong bảng cron_jobs</text>
+              <text x="680" y="234" font-weight="700">Postgres</text>
+              <text x="900" y="52" font-size="12" opacity=".8">API affiliate</text>
+              <text x="900" y="84">Shopee</text>
+              <text x="900" y="128">Lazada</text>
+              <text x="900" y="172">Network (TikTok)</text>
+              <text x="900" y="260" font-weight="700">App / web sàn</text>
+              <text x="900" y="278" font-size="11" opacity=".75">trang sản phẩm</text>
+            </g>
+            <g fill="currentColor" font-size="11" class="mono">
+              <text x="608" y="258">products</text>
+              <text x="608" y="276">clicks</text>
+              <text x="608" y="294">conversions</text>
+              <text x="608" y="312">ledger_entries</text>
+              <text x="608" y="330">withdrawals</text>
+              <text x="608" y="348" class="f-warn" font-weight="600">cron_jobs</text>
+            </g>
+            <g fill="none" stroke="currentColor" stroke-width="1.4">
+              <line x1="150" y1="170" x2="198" y2="170" marker-end="url(#ar)"/>
+              <line x1="150" y1="330" x2="218" y2="330" marker-end="url(#ar)"/>
+              <line x1="510" y1="123" x2="843" y2="123" class="s-acc" stroke-width="1.8" marker-end="url(#ar)"/>
+              <path d="M510 173 H800 V264 H828" class="s-acc" stroke-width="1.8" marker-end="url(#ar)"/>
+              <line x1="530" y1="285" x2="588" y2="285" marker-end="url(#ar)"/>
+              <path d="M510 345 H550 V396 H985 V115 H972" marker-end="url(#ar)"/>
+            </g>
+            <g fill="currentColor" font-size="11" opacity=".85" text-anchor="middle">
+              <text x="174" y="162">HTTPS</text>
+              <text x="178" y="322">gọi</text>
+              <text x="690" y="115">tạo link + sub_id</text>
+              <text x="680" y="165">trả link affiliate, app mở</text>
+              <text x="559" y="277">SQL</text>
+              <text x="800" y="390">kéo báo cáo đơn</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>Hai khối màu xanh là đường đi của tiền: Link Service gắn <code>click_id</code> vào link affiliate; khi người dùng bấm “Mua ngay”, backend ghi lại lượt bấm rồi trả link affiliate để app mở app sàn. Route cron là nơi duy nhất ghi trạng thái đơn, và chỉ chạy khi giành được khoá.</figcaption>
+      </figure>
+
+      <h3>Các thành phần</h3>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Thành phần</th><th>Trách nhiệm</th></tr></thead>
+          <tbody>
+            <tr><td><b>Link Service</b></td><td>Nhận URL → nhận diện sàn theo domain → resolve short link (<code>s.shopee.vn</code>, <code>s.lazada.vn</code>, <code>vt.tiktok.com</code>) bằng cách theo redirect, tối đa 5 bước → chuẩn hoá thành <code>(platform, shop_id, item_id)</code> → nếu cùng user đã dán sản phẩm này trong 24 giờ thì dùng lại click cũ, nếu không thì sinh <code>click_id</code> và gọi <code>PlatformAdapter.createLink(url, click_id)</code>.</td></tr>
+            <tr><td><b>PlatformAdapter</b></td><td>Một interface, mỗi sàn hoặc network một implementation: <code>parseUrl</code>, <code>createLink</code>, <code>getProductInfo</code>, <code>fetchConversions(since)</code>. Ký request theo yêu cầu từng sàn; secret chỉ nằm ở server.</td></tr>
+            <tr><td><b>Mở click</b> <code>POST /api/clicks/{id}/open</code></td><td>Ghi thời điểm bấm, thiết bị, IP đã hash rồi trả link affiliate; app mở link này bằng <code>Linking.openURL</code>. App không đi qua trang redirect của mình vì iOS thường không mở app sàn khi universal link nằm sau một lần redirect 302. Trang <code>/r/{click_id}</code> vẫn giữ cho link chia sẻ ra ngoài app.</td></tr>
+            <tr><td><b>Product preview</b></td><td>Lấy tên, ảnh, giá, % hoa hồng từ API affiliate (ví dụ Shopee <code>productOfferV2</code>), lưu vào bảng <code>products</code>. Dữ liệu dưới 6 giờ thì đọc từ bảng, cũ hơn thì gọi lại API. Không scrape trang sàn.</td></tr>
+            <tr><td><b>Cron đồng bộ đơn</b></td><td>Vercel Cron gọi route mỗi 30 phút. Route giành khoá trong <code>cron_jobs</code>, kéo báo cáo từ mốc đã lưu, khớp <code>sub_id</code> → click → user, upsert theo <code>(platform, order_id, item_id)</code>. Chi tiết ở phần dưới.</td></tr>
+            <tr><td><b>Ví &amp; sổ cái</b></td><td>Số dư không lưu thành một cột để sửa trực tiếp; số dư là tổng các bút toán bất biến trong <code>ledger_entries</code>. Huỷ đơn tạo bút toán đảo, không xoá bút toán cũ.</td></tr>
+            <tr><td><b>Admin</b></td><td>Tra cứu click và đơn, chỉnh tỉ lệ chia, duyệt yêu cầu rút, đánh dấu tài khoản nghi gian lận.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Luồng dán link đến khi mở sàn</h3>
+      <figure>
+        <div class="fig">
+          <svg viewBox="0 0 1000 530" role="img" aria-label="Sequence: người dùng dán hoặc chia sẻ link vào app, backend resolve và gọi API sàn với sub_id, lưu click, trả preview; khi người dùng bấm Mua ngay, backend ghi lượt bấm và trả link affiliate, app mở app sàn.">
+            <defs>
+              <marker id="sq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+            </defs>
+            <g fill="currentColor" font-size="13" font-weight="700" text-anchor="middle">
+              <text x="70" y="30">Người dùng</text>
+              <text x="240" y="30">App mobile</text>
+              <text x="420" y="30">Backend</text>
+              <text x="600" y="30">API sàn</text>
+              <text x="760" y="30">Postgres</text>
+              <text x="920" y="30">App sàn</text>
+            </g>
+            <g stroke="currentColor" stroke-width="1" stroke-dasharray="3 4" opacity=".4">
+              <line x1="70" y1="42" x2="70" y2="515"/><line x1="240" y1="42" x2="240" y2="515"/>
+              <line x1="420" y1="42" x2="420" y2="515"/><line x1="600" y1="42" x2="600" y2="515"/>
+              <line x1="760" y1="42" x2="760" y2="515"/><line x1="920" y1="42" x2="920" y2="515"/>
+            </g>
+            <g stroke="currentColor" stroke-width="1.4" fill="none">
+              <line x1="70" y1="80" x2="238" y2="80" marker-end="url(#sq)"/>
+              <line x1="240" y1="118" x2="418" y2="118" marker-end="url(#sq)"/>
+              <path d="M420 148 H470 V172 H422" marker-end="url(#sq)"/>
+              <line x1="420" y1="210" x2="598" y2="210" marker-end="url(#sq)"/>
+              <line x1="600" y1="246" x2="422" y2="246" stroke-dasharray="5 4" marker-end="url(#sq)"/>
+              <line x1="420" y1="282" x2="758" y2="282" marker-end="url(#sq)"/>
+              <line x1="420" y1="318" x2="242" y2="318" stroke-dasharray="5 4" marker-end="url(#sq)"/>
+              <line x1="70" y1="370" x2="238" y2="370" marker-end="url(#sq)"/>
+              <line x1="240" y1="404" x2="418" y2="404" marker-end="url(#sq)"/>
+              <line x1="420" y1="436" x2="758" y2="436" marker-end="url(#sq)"/>
+              <line x1="420" y1="468" x2="242" y2="468" stroke-dasharray="5 4" marker-end="url(#sq)"/>
+              <line x1="240" y1="502" x2="918" y2="502" class="s-acc" stroke-width="1.8" marker-end="url(#sq)"/>
+            </g>
+            <line x1="20" y1="344" x2="980" y2="344" stroke="currentColor" stroke-width="1" opacity=".25"/>
+            <g fill="currentColor" font-size="12">
+              <text x="155" y="72" text-anchor="middle">dán / chia sẻ link</text>
+              <text x="330" y="110" text-anchor="middle" class="mono" font-size="11">POST /api/links</text>
+              <text x="478" y="164">resolve short link, lấy item_id</text>
+              <text x="510" y="202" text-anchor="middle" class="mono" font-size="11">createLink(sub_id=click_id)</text>
+              <text x="510" y="238" text-anchor="middle">link affiliate</text>
+              <text x="590" y="274" text-anchor="middle">lưu click: user, sản phẩm, link</text>
+              <text x="330" y="310" text-anchor="middle">preview + /r/{click_id}</text>
+              <text x="155" y="362" text-anchor="middle">bấm “Mua ngay”</text>
+              <text x="330" y="396" text-anchor="middle" class="mono" font-size="11">POST /clicks/{id}/open</text>
+              <text x="590" y="428" text-anchor="middle">ghi redirected_at, thiết bị</text>
+              <text x="330" y="460" text-anchor="middle">link affiliate</text>
+              <text x="580" y="494" text-anchor="middle" class="f-acc">Linking.openURL → app sàn mở qua universal link, ghi nhận sub_id</text>
+              <text x="975" y="338" text-anchor="end" font-size="11" opacity=".6">tách 2 bước để người dùng xem trước rồi mới đi</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>Click được tạo ngay khi dán link, nhưng chỉ tính là “đã đi sang sàn” khi người dùng bấm “Mua ngay”. Hai mốc này giúp đo tỉ lệ người dùng bỏ ngang ở bước preview.</figcaption>
+      </figure>
+
+      <h3>Cron đồng bộ đơn và khoá chống chạy trùng</h3>
+      <p>Vercel Cron gọi <code>GET /api/cron/sync-orders</code> mỗi 30 phút. Hai lần chạy có thể chồng lên nhau: lần trước chưa xong thì lần sau đã tới, hoặc Vercel gọi lại một lần. Nếu cả hai cùng xử lý, một đơn có thể bị ghi hai bút toán. Vì vậy mỗi lần chạy phải giành khoá trong bảng <code>cron_jobs</code> trước, mỗi sàn một dòng.</p>
+      <ol>
+        <li>Kiểm tra header <code>Authorization: Bearer $CRON_SECRET</code> mà Vercel gửi kèm; sai thì trả 401.</li>
+        <li>Với từng sàn, giành khoá bằng một câu SQL nguyên tử. Không có dòng trả về nghĩa là lần chạy khác đang giữ khoá: bỏ qua sàn đó.</li>
+        <li>Kéo báo cáo từ <code>sync_cursor</code> lùi lại 6 giờ (để bắt đơn đổi trạng thái muộn), xử lý theo trang, dừng khi gần hết thời gian tối đa của function.</li>
+        <li>Lưu <code>sync_cursor</code> và nhả khoá, chỉ khi <code>locked_by</code> vẫn là mình.</li>
+      </ol>
+<pre><code><span class="c">-- Mỗi dòng là một job, ví dụ 'sync_orders:shopee'</span>
+CREATE TABLE cron_jobs (
+  name            text PRIMARY KEY,
+  locked_until    timestamptz NOT NULL DEFAULT 'epoch',
+  locked_by       text,          <span class="c">-- id ngẫu nhiên của lần chạy</span>
+  sync_cursor     timestamptz,   <span class="c">-- đã đồng bộ tới đâu</span>
+  last_success_at timestamptz,
+  last_error      text
+);
+
+<span class="c">-- Giành khoá: trả 1 dòng nếu được, 0 dòng nếu đang có lần chạy khác</span>
+INSERT INTO cron_jobs (name, locked_until, locked_by)
+VALUES ($1, now() + interval '10 minutes', $2)
+ON CONFLICT (name) DO UPDATE
+  SET locked_until = EXCLUDED.locked_until,
+      locked_by    = EXCLUDED.locked_by
+  WHERE cron_jobs.locked_until &lt; now()
+RETURNING sync_cursor;
+
+<span class="c">-- Nhả khoá và lưu tiến độ</span>
+UPDATE cron_jobs
+SET locked_until = now(), sync_cursor = $3,
+    last_success_at = now(), last_error = NULL
+WHERE name = $1 AND locked_by = $2;</code></pre>
+      <ul>
+        <li><b>Vì sao an toàn:</b> <code>ON CONFLICT … DO UPDATE</code> khoá dòng đó trong lúc cập nhật. Lần chạy thứ hai phải chờ, sau đó thấy <code>locked_until</code> còn trong tương lai nên điều kiện <code>WHERE</code> sai và không nhận được dòng nào.</li>
+        <li><b>Function bị kill giữa chừng:</b> thời hạn khoá 10 phút dài hơn <code>maxDuration</code> của function (đặt 300 giây), nên khoá tự hết hạn và lần chạy sau tiếp tục từ <code>sync_cursor</code> cũ.</li>
+        <li><b>Lớp bảo vệ thứ hai:</b> upsert đơn theo khoá duy nhất <code>(platform, order_id, item_id)</code> và chỉ ghi bút toán khi trạng thái đơn thật sự đổi. Nếu khoá có sai sót, dữ liệu vẫn không bị nhân đôi.</li>
+        <li><b>Theo dõi:</b> trang admin hiển thị <code>last_success_at</code> và <code>last_error</code> của từng job; quá 2 giờ không chạy thành công thì gửi email cảnh báo.</li>
+      </ul>
+
+      <h3>Vòng đời đơn hàng và tiền</h3>
+      <figure>
+        <div class="fig">
+          <svg viewBox="0 0 1000 230" role="img" aria-label="Trạng thái: Đã bấm link, Chờ duyệt (bút toán pending), Đã duyệt (bút toán available), Đã rút. Từ Chờ duyệt có thể sang Đã huỷ (bút toán đảo).">
+            <defs>
+              <marker id="st" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+            </defs>
+            <g fill="none" stroke="currentColor" stroke-width="1.4">
+              <rect x="20" y="40" width="150" height="64" rx="32"/>
+              <rect x="270" y="40" width="170" height="64" rx="32" class="s-warn" stroke-width="2"/>
+              <rect x="540" y="40" width="170" height="64" rx="32" class="s-acc" stroke-width="2"/>
+              <rect x="810" y="40" width="170" height="64" rx="32"/>
+              <rect x="270" y="160" width="170" height="56" rx="28" stroke-dasharray="5 4"/>
+              <line x1="170" y1="72" x2="268" y2="72" marker-end="url(#st)"/>
+              <line x1="440" y1="72" x2="538" y2="72" marker-end="url(#st)"/>
+              <line x1="710" y1="72" x2="808" y2="72" marker-end="url(#st)"/>
+              <line x1="355" y1="104" x2="355" y2="158" marker-end="url(#st)"/>
+            </g>
+            <g fill="currentColor" text-anchor="middle" font-size="13">
+              <text x="95" y="70" font-weight="700">Đã bấm link</text>
+              <text x="95" y="88" font-size="11" opacity=".7">chưa có tiền</text>
+              <text x="355" y="70" font-weight="700" class="f-warn">Chờ duyệt</text>
+              <text x="355" y="88" font-size="11" class="mono" opacity=".8">pending_credit</text>
+              <text x="625" y="70" font-weight="700" class="f-acc">Đã duyệt</text>
+              <text x="625" y="88" font-size="11" class="mono" opacity=".8">available</text>
+              <text x="895" y="70" font-weight="700">Đã rút</text>
+              <text x="895" y="88" font-size="11" class="mono" opacity=".8">withdrawal</text>
+              <text x="355" y="186" font-weight="700">Đã huỷ</text>
+              <text x="355" y="203" font-size="11" class="mono" opacity=".8">reversal</text>
+            </g>
+            <g fill="currentColor" font-size="11" text-anchor="middle" opacity=".85">
+              <text x="219" y="62">sàn báo đơn</text>
+              <text x="489" y="56">sàn duyệt</text>
+              <text x="489" y="94">~30–60 ngày</text>
+              <text x="759" y="62">admin chuyển</text>
+              <text x="455" y="138" text-anchor="start">huỷ / trả hàng</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>Tiền chỉ rút được ở trạng thái “Đã duyệt”, tức là sau khi hết thời hạn đổi trả và sàn đã chốt hoa hồng. Thời gian thực tế phụ thuộc từng sàn <span class="verify">Cần xác minh</span>.</figcaption>
+      </figure>
+
+      <h3>Dữ liệu và index</h3>
+      <p>Không dùng Redis. Những việc thường giao cho cache (dữ liệu sản phẩm, chống spam) đều làm bằng bảng Postgres có index phù hợp.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Bảng</th><th>Cột chính</th><th>Index</th><th>Dùng cho</th></tr></thead>
+          <tbody>
+            <tr><td><code>users</code></td><td>id, phone, zalo_id, google_id, share_rate, status</td><td>UNIQUE(phone), UNIQUE(zalo_id), UNIQUE(google_id)</td><td><code>share_rate</code> mặc định 0.70</td></tr>
+            <tr><td><code>products</code></td><td>platform, shop_id, item_id, title, image, price, commission_rate, fetched_at</td><td>UNIQUE(platform, shop_id, item_id)</td><td>Thay cache: đọc nếu <code>fetched_at</code> &lt; 6 giờ</td></tr>
+            <tr><td><code>clicks</code></td><td>click_id, user_id, product_id, original_url, affiliate_url, created_at, redirected_at, ip_hash, ua</td><td>PK(click_id)<br>(user_id, product_id, created_at)<br>(user_id, created_at)<br>(ip_hash, created_at)</td><td>Dùng lại click trong 24 giờ; rate limit: đếm click của user hoặc IP trong 1 phút qua</td></tr>
+            <tr><td><code>conversions</code></td><td>platform, order_id, item_id, click_id, order_amount, commission, status, platform_updated_at, raw</td><td>UNIQUE(platform, order_id, item_id)<br>(click_id)</td><td>Upsert idempotent; lưu payload gốc để đối soát</td></tr>
+            <tr><td><code>ledger_entries</code></td><td>id, user_id, conversion_id, withdrawal_id, type, amount, created_at</td><td>(user_id, created_at)<br>UNIQUE(conversion_id, type)</td><td>Chỉ insert; số dư = SUM theo type; UNIQUE chặn ghi trùng bút toán</td></tr>
+            <tr><td><code>withdrawals</code></td><td>id, user_id, amount, method, account_info, status, processed_by</td><td>(status, created_at)</td><td>Hàng chờ duyệt của admin; tối thiểu 50.000₫</td></tr>
+            <tr><td><code>cron_jobs</code></td><td>name, locked_until, locked_by, sync_cursor, last_success_at, last_error</td><td>PK(name)</td><td>Khoá cron và mốc đồng bộ</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted"><code>click_id</code> dài 8–10 ký tự base62 để vừa giới hạn ký tự của <code>sub_id</code> ở các sàn.</p>
+
+      <h3>Yêu cầu phi chức năng</h3>
+      <div class="grid2">
+        <div class="panel">
+          <h4>Độ tin cậy</h4>
+          <ul>
+            <li>Gọi API sàn có timeout 3 giây, retry tối đa 2 lần</li>
+            <li>Tạo link thất bại thì báo lỗi rõ, không chuyển người dùng sang link không có mã</li>
+            <li>Đồng bộ đơn chạy lại nhiều lần vẫn cho cùng kết quả</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h4>Bảo mật &amp; dữ liệu cá nhân</h4>
+          <ul>
+            <li>Secret API sàn chỉ ở biến môi trường server</li>
+            <li>Rate limit: tối đa 10 link/phút mỗi user, 30 link/phút mỗi IP, đếm trên bảng <code>clicks</code></li>
+            <li>Hash IP; không ghi số tài khoản ngân hàng vào log</li>
+            <li>Tuân thủ Nghị định 13/2023 về bảo vệ dữ liệu cá nhân</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h4>Chống gian lận</h4>
+          <ul>
+            <li>Một SĐT một tài khoản</li>
+            <li>Chỉ cộng tiền khả dụng khi sàn đã duyệt</li>
+            <li>Đánh dấu user có tỉ lệ huỷ đơn cao</li>
+            <li>Rút tiền lần đầu cần duyệt tay</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h4>Theo dõi</h4>
+          <ul>
+            <li>Log của Vercel, kèm <code>click_id</code> trong mỗi dòng log</li>
+            <li>Trang admin: click/ngày, tỉ lệ đổi link lỗi theo sàn, đơn mới, trạng thái cron</li>
+            <li>Danh sách đơn không khớp được click để soát lỗi tracking</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section id="uiux">
+      <h2><span class="n">4</span>UI / UX</h2>
+      <p>Toàn bộ giá trị của app nằm ở một thao tác: đưa link vào app và đi mua. Thiết kế ưu tiên làm thao tác đó nhanh nhất có thể, mọi thứ khác (ví, lịch sử đơn) là màn hình phụ.</p>
+
+      <h3>Màu sắc và phong cách</h3>
+      <p>Người dùng đến từ Shopee, Lazada, TikTok Shop, nên app dùng cùng “ngôn ngữ” với các sàn: tông cam hồng tươi, nền sáng ấm, giá và số tiền in đậm, nhãn hoàn tiền màu vàng nổi bật, thanh tab ở đáy màn hình. Màu chính là cam hồng riêng, không lấy đúng mã màu của sàn nào, để không bị nhầm với app chính thức của sàn.</p>
+      <div class="swatches">
+        <div class="sw"><div class="chipc" style="background: var(--app-primary);"></div><div class="info"><b>Cam chính</b><code>#FF5B2E</code><span class="muted">Nút chính, giá, tab đang chọn</span></div></div>
+        <div class="sw"><div class="chipc" style="background: linear-gradient(135deg, var(--app-primary), var(--app-primary-2));"></div><div class="info"><b>Gradient đầu trang</b><code>#FF5B2E → #FF3D6E</code><span class="muted">Header, nút “Mua ngay”</span></div></div>
+        <div class="sw"><div class="chipc" style="background: var(--app-yellow);"></div><div class="info"><b>Vàng hoàn tiền</b><code>#FFC93C</code><span class="muted">Nhãn “Hoàn ~18.900₫”, banner</span></div></div>
+        <div class="sw"><div class="chipc" style="background: var(--app-green);"></div><div class="info"><b>Xanh tiền về</b><code>#13A150</code><span class="muted">Số tiền đã cộng vào ví</span></div></div>
+        <div class="sw"><div class="chipc" style="background: var(--app-bg);"></div><div class="info"><b>Nền ấm</b><code>#FFF4EF</code><span class="muted">Nền màn hình, thẻ trắng nổi lên</span></div></div>
+      </div>
+
+      <h3>Luồng chính: ba bước</h3>
+      <ol>
+        <li><b>Đưa link vào app.</b> Trong app sàn bấm Chia sẻ → chọn HoànTiền, hoặc dán vào ô nhập nằm ngay trong header màu cam.</li>
+        <li><b>Xem trước.</b> Ảnh, tên, giá sản phẩm và số tiền hoàn ước tính tính bằng đồng, không chỉ phần trăm.</li>
+        <li><b>Mua ngay.</b> Chuyển sang app sàn. Trước khi chuyển, nhắc ngắn những việc làm mất hoàn tiền.</li>
+      </ol>
+
+      <div class="phones">
+        <div>
+          <div class="phone">
+            <div class="w-head">
+              <div class="top"><span>HoànTiền</span><span class="w-pill">Ví 126.400₫</span></div>
+              <div class="w-input"><span>Dán link sản phẩm…</span><b>Dán</b></div>
+            </div>
+            <div class="w-body">
+              <div class="w-promo">Hoàn đến 12% <span>Thời trang · tuần này</span></div>
+              <div style="font-weight:700;">Link gần đây</div>
+              <div class="w-card w-row"><div class="w-thumb"></div><div class="w-grow"><div class="w-line"></div><span class="w-cb">Hoàn ~18.900₫</span></div></div>
+              <div class="w-card w-row"><div class="w-thumb"></div><div class="w-grow"><div class="w-line"></div><span class="w-cb">Hoàn ~5.400₫</span></div></div>
+              <div class="w-card w-row"><div class="w-thumb"></div><div class="w-grow"><div class="w-line"></div><span class="w-cb">Hoàn ~32.500₫</span></div></div>
+            </div>
+            <div class="w-tabbar"><span class="on"><i></i>Trang chủ</span><span><i></i>Đơn hàng</span><span><i></i>Ví</span><span><i></i>Tôi</span></div>
+          </div>
+          <div class="cap">Trang chủ</div>
+        </div>
+        <div>
+          <div class="phone">
+            <div class="w-head"><div class="top"><span>← Xem trước</span><span class="w-pill">Shopee</span></div></div>
+            <div class="w-body">
+              <div class="w-img"></div>
+              <div style="font-weight:600;">Tai nghe Bluetooth chống ồn…</div>
+              <div class="w-price">450.000₫</div>
+              <div class="w-card"><span class="w-muted">Hoàn ước tính</span><span class="w-big" style="color: var(--app-primary);">~18.900₫</span></div>
+              <div class="w-note">Đặt hàng ngay trong lần mở này. Không bấm link giới thiệu khác trước khi thanh toán.</div>
+              <div class="w-btn">Mua ngay trên Shopee</div>
+            </div>
+          </div>
+          <div class="cap">Xem trước</div>
+        </div>
+        <div>
+          <div class="phone">
+            <div class="w-head"><div class="top"><span>Đơn hàng</span></div></div>
+            <div class="w-tabs"><span class="on">Chờ duyệt (3)</span><span>Đã duyệt (7)</span><span>Huỷ</span></div>
+            <div class="w-body">
+              <div class="w-card w-row"><div class="w-thumb"></div><div class="w-grow"><div class="w-line"></div><span class="w-muted">Đặt 03/10 · duyệt ~15/11</span><span class="w-st wait" style="justify-self:start;">Chờ duyệt</span></div><b>18.900₫</b></div>
+              <div class="w-card w-row"><div class="w-thumb"></div><div class="w-grow"><div class="w-line"></div><span class="w-muted">Đặt 28/09 · duyệt ~10/11</span><span class="w-st wait" style="justify-self:start;">Chờ duyệt</span></div><b>7.200₫</b></div>
+              <div class="w-card w-row"><div class="w-thumb"></div><div class="w-grow"><div class="w-line"></div><span class="w-muted">Đặt 21/09 · duyệt ~05/11</span><span class="w-st wait" style="justify-self:start;">Chờ duyệt</span></div><b>32.500₫</b></div>
+              <div class="w-btn ghost">Đơn của tôi chưa hiện?</div>
+            </div>
+            <div class="w-tabbar"><span><i></i>Trang chủ</span><span class="on"><i></i>Đơn hàng</span><span><i></i>Ví</span><span><i></i>Tôi</span></div>
+          </div>
+          <div class="cap">Đơn hàng</div>
+        </div>
+        <div>
+          <div class="phone">
+            <div class="w-head">
+              <div class="top"><span>Ví của tôi</span></div>
+              <div><div style="opacity:.85;">Có thể rút</div><div class="w-big">126.400₫</div><div style="opacity:.85;">Đang chờ duyệt: 58.600₫</div></div>
+            </div>
+            <div class="w-body">
+              <div class="w-btn">Rút về ngân hàng</div>
+              <div class="w-muted">Tối thiểu 50.000₫ · xử lý trong 3 ngày làm việc</div>
+              <div class="w-card">
+                <div class="w-row"><div class="w-grow"><span>Hoàn đơn #…8821</span><span class="w-muted">12/10</span></div><span class="w-plus">+18.900₫</span></div>
+                <div class="w-row"><div class="w-grow"><span>Hoàn đơn #…7310</span><span class="w-muted">08/10</span></div><span class="w-plus">+7.500₫</span></div>
+                <div class="w-row"><div class="w-grow"><span>Rút tiền</span><span class="w-muted">01/10</span></div><b>−100.000₫</b></div>
+              </div>
+            </div>
+            <div class="w-tabbar"><span><i></i>Trang chủ</span><span><i></i>Đơn hàng</span><span class="on"><i></i>Ví</span><span><i></i>Tôi</span></div>
+          </div>
+          <div class="cap">Ví &amp; rút tiền</div>
+        </div>
+      </div>
+      <p class="muted">Wireframe, số liệu là ví dụ.</p>
+
+      <h3>Giảm thao tác cho người dùng</h3>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Cách</th><th>Android</th><th>iOS</th></tr></thead>
+          <tbody>
+            <tr><td><b>Chia sẻ thẳng từ app sàn</b></td><td>Intent filter <code>text/*</code>: app hiện trong menu Chia sẻ</td><td>Share extension do <code>expo-share-intent</code> tạo khi build</td></tr>
+            <tr><td><b>Gợi ý dán link vừa copy</b></td><td>Kiểm tra clipboard có chữ khi mở Trang chủ, hiện thẻ “Bạn vừa sao chép một link?”</td><td>Như Android; chỉ đọc nội dung khi người dùng bấm, nên hệ điều hành hỏi quyền dán đúng lúc</td></tr>
+            <tr><td><b>Kênh Zalo / bot</b></td><td colspan="2">Người dùng gửi link cho Zalo OA hoặc Telegram bot, nhận lại link đã đổi. Tận dụng thói quen chat sẵn có, có thể làm sau MVP</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Quyết định UX cần chốt</h3>
+      <ul>
+        <li><b>Bắt đăng nhập lúc nào.</b> Đề xuất: cho dán và xem preview không cần tài khoản; bắt đăng nhập một chạm (Zalo hoặc Google) khi bấm “Mua ngay”. Không gắn được user thì không trả được tiền.</li>
+        <li><b>Hiển thị số tiền hoàn bằng đồng</b> thay vì phần trăm, kèm chữ “ước tính” vì sàn có thể điều chỉnh.</li>
+        <li><b>Trang “Vì sao đơn chưa được ghi nhận?”</b> với các nguyên nhân hay gặp: bấm link affiliate khác sau đó, mở link trong trình duyệt của Facebook/Zalo, dùng voucher không hợp lệ cho affiliate, thanh toán sau quá lâu.</li>
+        <li><b>Dự kiến ngày duyệt</b> cho từng đơn để giảm câu hỏi hỗ trợ.</li>
+      </ul>
+    </section>
+
+    <!-- 5 app -->
+    <section id="mobile">
+      <h2><span class="n">5</span>App React Native</h2>
+      <p>Người dùng tải app từ App Store hoặc Google Play. App viết bằng React Native với Expo, một codebase cho cả iOS và Android. Khung app đã có trong thư mục <code>mobile/</code>: đủ 4 tab và các màn hình trong wireframe, chạy được với dữ liệu mẫu khi chưa có backend.</p>
+
+      <h3>Thư viện</h3>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Việc</th><th>Dùng</th><th>Ghi chú</th></tr></thead>
+          <tbody>
+            <tr><td>Nền tảng</td><td>Expo SDK 57, React Native 0.86, TypeScript</td><td>Build trên cloud bằng EAS, không cần tự quản lý thư mục <code>ios/</code>, <code>android/</code></td></tr>
+            <tr><td>Điều hướng</td><td>Expo Router, tab bar native</td><td>Mỗi file trong <code>src/app/</code> là một màn hình</td></tr>
+            <tr><td>Nhận link chia sẻ</td><td><code>expo-share-intent</code></td><td>Tạo share extension iOS và intent filter Android khi build; không chạy trong Expo Go</td></tr>
+            <tr><td>Clipboard</td><td><code>expo-clipboard</code></td><td>Gợi ý dán link vừa copy</td></tr>
+            <tr><td>Lưu đăng nhập</td><td><code>expo-secure-store</code></td><td>Token nằm trong Keychain / Keystore</td></tr>
+            <tr><td>Giao diện</td><td><code>expo-linear-gradient</code>, <code>expo-image</code></td><td>Header và nút gradient cam hồng, ảnh sản phẩm có cache</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Không dùng thư viện quản lý state hay gọi API riêng. Một hook nhỏ <code>useAsync</code> lo việc tải dữ liệu, trạng thái loading/lỗi và tải lại khi quay về màn hình.</p>
+
+      <h3>Cấu trúc thư mục</h3>
+<pre><code>mobile/
+  app.json                  <span class="c"># tên app, bundle id, scheme, cấu hình share extension</span>
+  eas.json                  <span class="c"># profile build: development / preview / production</span>
+  src/app/
+    _layout.tsx             <span class="c"># ShareIntentProvider → SessionProvider → Stack</span>
+    +native-intent.ts       <span class="c"># link từ iOS share extension → Trang chủ</span>
+    (tabs)/index.tsx        <span class="c"># Trang chủ: ô dán link, gợi ý clipboard, link gần đây</span>
+    (tabs)/orders.tsx       <span class="c"># Đơn hàng: Chờ duyệt / Đã duyệt / Đã huỷ</span>
+    (tabs)/wallet.tsx       <span class="c"># Ví: số dư, lịch sử, nút rút tiền</span>
+    (tabs)/account.tsx      <span class="c"># Tôi: đăng nhập / đăng xuất, câu hỏi thường gặp</span>
+    preview.tsx             <span class="c"># Xem trước + "Mua ngay"</span>
+    login.tsx, withdraw.tsx, help.tsx
+  src/lib/
+    api.ts                  <span class="c"># gọi backend; không đặt EXPO_PUBLIC_API_URL thì dùng mock.ts</span>
+    links.ts                <span class="c"># nhận diện sàn, tách link khỏi đoạn chữ chia sẻ</span>
+    session.tsx, use-async.ts, format.ts, mock.ts
+  src/constants/theme.ts    <span class="c"># bảng màu ở mục 4</span></code></pre>
+
+      <h3>Nhận link khi người dùng bấm Chia sẻ trong app sàn</h3>
+      <p>Đoạn chữ chia sẻ từ app sàn thường có cả tên sản phẩm, ví dụ “Xem Tai nghe Bluetooth giá ₫450.000 tại Shopee! https://s.shopee.vn/6AbCdEf123”. Trang chủ nhận nội dung chia sẻ và chuyển sang màn Xem trước; màn đó tách link bằng <code>extractProductLink</code> và báo lỗi nếu không có link của ba sàn.</p>
+<pre><code><span class="c">// src/app/(tabs)/index.tsx</span>
+const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
+
+useEffect(() =&gt; {
+  if (!hasShareIntent) return;
+  const shared = shareIntent.webUrl ?? shareIntent.text ?? '';
+  resetShareIntent();
+  router.push({ pathname: '/preview', params: { url: shared } });
+}, [hasShareIntent, shareIntent, resetShareIntent]);</code></pre>
+<pre><code><span class="c">// src/app/+native-intent.ts: iOS mở app bằng hoantien://dataUrl=…, không khớp route nào</span>
+export function redirectSystemPath({ path }: { path: string; initial: boolean }) {
+  if (path.includes(`dataUrl=${getShareExtensionKey()}`)) return '/';
+  return path;
+}</code></pre>
+
+      <h3>Nút “Mua ngay”</h3>
+<pre><code><span class="c">// src/app/preview.tsx</span>
+async function buyNow() {
+  <span class="c">// Không gắn được người dùng thì không trả được tiền hoàn</span>
+  if (!session) return router.push('/login');
+  <span class="c">// Backend ghi redirected_at rồi trả link affiliate có sub_id = click_id</span>
+  const { affiliateUrl } = await api.openClick(preview.clickId);
+  <span class="c">// Mở thẳng link của sàn để iOS/Android mở app sàn bằng universal link</span>
+  await Linking.openURL(affiliateUrl);
+}</code></pre>
+
+      <h3>API backend cần cho app</h3>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Dùng ở</th></tr></thead>
+          <tbody>
+            <tr><td><code>POST /api/links</code> <span class="muted">{ url }</span></td><td>Xem trước: resolve link, tạo click, trả sản phẩm và tiền hoàn ước tính</td></tr>
+            <tr><td><code>POST /api/clicks/{id}/open</code></td><td>Mua ngay: ghi lượt bấm, trả link affiliate</td></tr>
+            <tr><td><code>GET /api/links/recent</code></td><td>Trang chủ: link gần đây</td></tr>
+            <tr><td><code>GET /api/orders</code></td><td>Tab Đơn hàng</td></tr>
+            <tr><td><code>GET /api/wallet</code>, <code>POST /api/withdrawals</code></td><td>Tab Ví, màn Rút tiền</td></tr>
+            <tr><td><code>POST /api/auth/otp</code>, <code>POST /api/auth/verify</code></td><td>Đăng nhập; trả token, app gửi kèm header <code>Authorization: Bearer</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Build và phát hành lên store</h3>
+      <ol>
+        <li><b>Tài khoản:</b> Apple Developer Program (99 USD/năm) và Google Play Console (25 USD một lần). Đặt <code>bundleIdentifier</code> / <code>package</code> trong <code>app.json</code>, hiện để tạm <code>vn.hoantien.app</code>.</li>
+        <li><b>Chạy thử trên máy:</b> <code>npx expo run:android</code> hoặc build development trên cloud với <code>eas build --profile development</code>.</li>
+        <li><b>Bản thử cho người dùng:</b> <code>eas build --profile production</code> rồi <code>eas submit</code> lên TestFlight (iOS) và track thử nghiệm của Google Play. Tài khoản Google Play cá nhân mới phải chạy closed testing với một số lượng người thử tối thiểu trong một khoảng thời gian trước khi lên production <span class="verify">Cần xác minh</span>.</li>
+        <li><b>Gửi duyệt:</b> kèm tài khoản demo, giải thích cơ chế hoàn tiền và việc app mở link sang app sàn. Cần có trang chính sách quyền riêng tư và cách xoá tài khoản ngay trong app (cả hai store đều yêu cầu).</li>
+        <li><b>Cập nhật sau phát hành:</b> sửa lỗi chỉ ở phần JavaScript thì đẩy bằng EAS Update, không phải chờ duyệt lại; thay đổi native (thêm thư viện, quyền mới) thì build và gửi duyệt lại.</li>
+      </ol>
+
+      <div class="callout">
+        <p><b>Còn thiếu trong khung app hiện tại</b></p>
+        <ul>
+          <li>Icon và splash vẫn là ảnh mặc định của Expo</li>
+          <li>Nút xoá tài khoản trong tab Tôi (bắt buộc để qua duyệt store)</li>
+          <li>Push notification khi đơn được duyệt hoặc tiền về ví</li>
+          <li>Màn hình xem trước dùng dữ liệu mẫu cho đến khi có <code>POST /api/links</code> thật</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section id="deploy">
+      <h2><span class="n">6</span>Deployment</h2>
+      <p>Hai dịch vụ, không có server tự quản lý. Mọi thứ đặt ở Singapore cho gần người dùng Việt Nam.</p>
+
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Thành phần</th><th>Dùng gì</th><th>Ghi chú</th></tr></thead>
+          <tbody>
+            <tr><td><b>App</b> (giao diện, API, redirect, cron)</td><td>Next.js trên Vercel Pro, region <code>sin1</code></td><td>Cần gói Pro: gói Hobby không cho dùng thương mại và chỉ chạy cron mỗi ngày một lần</td></tr>
+            <tr><td><b>Database</b></td><td>Postgres trên Neon hoặc Supabase, region Singapore</td><td>Backup tự động của nhà cung cấp; dùng connection pooler vì function serverless mở nhiều kết nối</td></tr>
+            <tr><td><b>Cron</b></td><td>Vercel Cron</td><td>Khoá bằng bảng <code>cron_jobs</code> như mục 3</td></tr>
+            <tr><td><b>Log &amp; lỗi</b></td><td>Log của Vercel</td><td>Thêm Sentry gói free khi cần</td></tr>
+            <tr><td><b>Domain</b></td><td>DNS trỏ về Vercel</td><td>HTTPS tự động</td></tr>
+            <tr><td><b>App mobile</b></td><td>EAS Build và EAS Submit của Expo</td><td>Build trên cloud, không cần máy Mac; đẩy lên TestFlight và Google Play. Chi tiết ở mục 5</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+<pre><code><span class="c">// vercel.json</span>
+{
+  "crons": [
+    { "path": "/api/cron/sync-orders", "schedule": "*/30 * * * *" }
+  ]
+}</code></pre>
+
+      <h3>Chi phí ước tính</h3>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Hạng mục</th><th>Gói</th><th class="num">USD / tháng</th></tr></thead>
+          <tbody>
+            <tr><td>Vercel</td><td>Pro</td><td class="num">20</td></tr>
+            <tr><td>Neon / Supabase</td><td>Free lúc đầu, lên gói trả phí khi cần</td><td class="num">0–25</td></tr>
+            <tr><td>Domain</td><td>.com hoặc .vn, chia theo tháng</td><td class="num">1–2</td></tr>
+            <tr><td>Apple Developer Program</td><td>99 USD/năm, chia theo tháng</td><td class="num">~8</td></tr>
+            <tr><td>Google Play Console</td><td>25 USD trả một lần</td><td class="num">0</td></tr>
+            <tr><td>EAS (Expo)</td><td>Free, giới hạn số lượt build mỗi tháng</td><td class="num">0</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="2">Tổng hằng tháng (chưa tính 25 USD Google Play lúc đầu)</td><td class="num">~29–55</td></tr></tfoot>
+        </table>
+      </div>
+      <p class="muted">Giá tham khảo, cần kiểm tra lại bảng giá hiện hành. Gói free của Supabase tạm dừng database khi không có truy cập một thời gian; Neon free thì khởi động lại chậm vài trăm ms.</p>
+
+      <h3>Quy trình deploy</h3>
+      <ul>
+        <li>Mỗi pull request trên GitHub có một bản preview riêng của Vercel</li>
+        <li>Merge vào <code>main</code> thì deploy production</li>
+        <li>Migration (Drizzle hoặc Prisma) chạy ở bước build của production; mỗi lần chỉ thêm bảng hoặc cột, không xoá trong cùng lần deploy</li>
+        <li>Secret (API sàn, <code>CRON_SECRET</code>, URL database) đặt trong biến môi trường của Vercel</li>
+      </ul>
+      <p>Chỉ thêm hạ tầng khi số liệu thực tế đòi hỏi, ví dụ route cron thường xuyên chạy hết thời gian, hoặc truy vấn rate limit làm chậm trang dán link.</p>
+    </section>
+
+    <!-- 6 -->
+    <section id="roadmap">
+      <h2><span class="n">7</span>Roadmap</h2>
+      <div class="panel" style="padding-block:4px;">
+        <div class="phase"><div class="when">Phase 0 · 1 tuần</div><div><h4>Xác minh</h4><p>Đọc điều khoản affiliate, xin quyền Open API Shopee và Lazada, chọn network cho TikTok Shop. Tạo thử link bằng tay và đặt một đơn thật để xem <code>sub_id</code> có quay về trong báo cáo không.</p></div></div>
+        <div class="phase"><div class="when">Phase 1 · 2–3 tuần</div><div><h4>Đổi link</h4><p>Backend: resolve, tạo link affiliate, mở click, đăng nhập. Nối app (đã có khung trong <code>mobile/</code>) với backend thật. Phát hành bản thử qua TestFlight và Google Play closed testing cho 20–50 người.</p></div></div>
+        <div class="phase"><div class="when">Phase 2 · 2–3 tuần</div><div><h4>Đơn hàng &amp; ví</h4><p>Cron đồng bộ đơn có khoá, màn hình đơn hàng, sổ cái, rút tiền với admin chuyển khoản thủ công.</p></div></div>
+        <div class="phase"><div class="when">Phase 3</div><div><h4>Mở rộng</h4><p>Phát hành chính thức trên hai store, Zalo OA, referral, tự động chi trả, push notification khi đơn được duyệt.</p></div></div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section id="rui-ro">
+      <h2><span class="n">8</span>Rủi ro &amp; câu hỏi cho người review</h2>
+
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Rủi ro</th><th>Ảnh hưởng</th><th>Cách giảm</th></tr></thead>
+          <tbody>
+            <tr><td>Điều khoản sàn không cho phép mô hình hoàn tiền <span class="verify">Cần xác minh</span></td><td>Bị khoá tài khoản affiliate, mất hoa hồng</td><td>Kiểm tra ở Phase 0; cân nhắc đi qua network có chương trình cashback chính thức</td></tr>
+            <tr><td>Mất attribution khi mở trong trình duyệt nhúng (Facebook, Zalo) hoặc do last-click</td><td>Người dùng mua nhưng không có đơn, mất niềm tin</td><td>Dùng short link chính thức của sàn để mở thẳng app; hướng dẫn rõ; đo tỉ lệ click → đơn theo nguồn</td></tr>
+            <tr><td>API sàn đổi, giới hạn rate, hoặc bị thu hồi quyền</td><td>Không tạo được link</td><td>Lớp <code>PlatformAdapter</code>, có thể chuyển sang network; cảnh báo khi tỉ lệ lỗi tăng</td></tr>
+            <tr><td>Thủ tục pháp lý khi vận hành website/app thương mại điện tử và chi trả tiền cho người dùng <span class="verify">Cần xác minh</span></td><td>Phạt hành chính, vấn đề thuế</td><td>Hỏi ý kiến người có chuyên môn về thông báo/đăng ký với Bộ Công Thương và nghĩa vụ thuế trước khi mở rộng</td></tr>
+            <tr><td>App bị App Store hoặc Google Play từ chối khi duyệt <span class="verify">Cần xác minh</span></td><td>Chậm ra mắt</td><td>Cung cấp tài khoản demo và mô tả rõ cơ chế hoàn tiền trong ghi chú gửi duyệt; mở link sàn ra ngoài, không nhúng trang sàn trong app</td></tr>
+            <tr><td>Gian lận: tự mua rồi huỷ, nhiều tài khoản</td><td>Trả tiền cho đơn không có hoa hồng</td><td>Chỉ cho rút sau khi sàn duyệt; giới hạn theo SĐT; duyệt tay lần rút đầu</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Câu hỏi mong bạn góp ý</h3>
+      <ol class="qs">
+        <li>Tích hợp trực tiếp API từng sàn hay đi qua một network ngay từ đầu? Có ai trong nhóm đã có tài khoản Shopee Affiliate được cấp Open API chưa?</li>
+        <li>Bắt đăng nhập khi bấm “Mua ngay” có làm rơi nhiều người dùng không? Phương án thay thế là gắn click theo thiết bị và cho “nhận” đơn sau khi đăng nhập.</li>
+        <li>Tỉ lệ chia 70% cho người dùng có hợp lý so với các app hoàn tiền đang có trên thị trường?</li>
+        <li>Đăng nhập bằng SĐT + OTP (tốn phí SMS) hay thêm Zalo / Google? Nếu có đăng nhập bằng tài khoản bên thứ ba, App Store yêu cầu có thêm một lựa chọn đăng nhập bảo vệ quyền riêng tư như Sign in with Apple.</li>
+        <li>Cron 30 phút một lần có đủ không, hay người dùng mong thấy đơn gần như ngay sau khi đặt?</li>
+        <li>Có cần làm kênh Zalo OA / bot ngay từ MVP không, vì người dùng Việt quen gửi link qua chat?</li>
+      </ol>
+    </section>
+  </main>
+</div>
