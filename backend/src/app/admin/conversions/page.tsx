@@ -37,7 +37,7 @@ async function Conversions({ searchParams }: { searchParams: Promise<{ unmatched
         {unmatched ? (
           <>Đơn sàn trả về nhưng không khớp được người dùng (thiếu hoặc sai sub_id). <Link href="/admin/conversions">Xem tất cả</Link></>
         ) : (
-          <>200 đơn gần nhất. <Link href="/admin/conversions?unmatched=1">Chỉ xem đơn không khớp click</Link></>
+          <>Tối đa 200 đơn gần nhất. <Link href="/admin/conversions?unmatched=1">Chỉ xem đơn không khớp click</Link></>
         )}
       </p>
       <table>

@@ -30,7 +30,7 @@ code { font-family: ui-monospace, monospace; font-size: 0.9em; }
 .warn { color: var(--warn); font-weight: 600; }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-.stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; }
+.stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-rows: 1fr auto; gap: 4px; }
 .stat span { color: var(--muted); font-size: 0.85rem; }
 .stat b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .stat.warn b { color: var(--warn); }

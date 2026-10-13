@@ -45,16 +45,18 @@ async function Withdrawals() {
               <td>{w.bankName}</td>
               <td><code>{w.accountNumber}</code></td>
               <td>{w.accountName}</td>
-              <td className="actions">
-                <form action={markPaidAction}>
-                  <input type="hidden" name="id" value={w.id} />
-                  <button type="submit">Đã chuyển</button>
-                </form>
-                <form action={rejectAction}>
-                  <input type="hidden" name="id" value={w.id} />
-                  <input name="note" placeholder="Lý do từ chối" aria-label="Lý do từ chối" />
-                  <button type="submit" className="danger">Từ chối</button>
-                </form>
+              <td>
+                <div className="actions">
+                  <form action={markPaidAction}>
+                    <input type="hidden" name="id" value={w.id} />
+                    <button type="submit">Đã chuyển</button>
+                  </form>
+                  <form action={rejectAction}>
+                    <input type="hidden" name="id" value={w.id} />
+                    <input name="note" placeholder="Lý do từ chối" aria-label="Lý do từ chối" />
+                    <button type="submit" className="danger">Từ chối</button>
+                  </form>
+                </div>
               </td>
             </tr>
           ))}
@@ -67,6 +69,7 @@ async function Withdrawals() {
           <tr><th>Xử lý lúc</th><th>SĐT</th><th className="num">Số tiền</th><th>Trạng thái</th><th>Ghi chú</th></tr>
         </thead>
         <tbody>
+          {processed.length === 0 ? <tr><td colSpan={5}>Chưa có lệnh rút nào được xử lý.</td></tr> : null}
           {processed.map(({ w, phone }) => (
             <tr key={w.id}>
               <td>{w.processedAt ? formatDateTime(w.processedAt) : '—'}</td>
