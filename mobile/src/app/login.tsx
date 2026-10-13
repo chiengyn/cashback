@@ -1,5 +1,6 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui';
@@ -9,13 +10,25 @@ import { useSession } from '@/lib/session';
 
 const VN_PHONE = /^(0|\+84)(3|5|7|8|9)\d{8}$/;
 
+/**
+ * Đăng nhập bằng SĐT + OTP, hoặc Sign in with Apple trên iOS.
+ * `?mode=link`: tài khoản Apple đã đăng nhập thêm số điện thoại (bắt buộc trước khi rút tiền).
+ */
 export default function LoginScreen() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isLink = mode === 'link';
   const { signIn } = useSession();
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || isLink) return;
+    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
+  }, [isLink]);
 
   const normalizedPhone = phone.replace(/\s/g, '');
 
@@ -44,18 +57,53 @@ export default function LoginScreen() {
 
   function verify() {
     run(async () => {
-      const { token } = await api.verifyOtp(normalizedPhone, code);
-      await signIn({ token, phone: normalizedPhone });
+      // Khi isLink, api gửi kèm token hiện tại nên backend gắn số vào tài khoản Apple đang đăng nhập.
+      const result = await api.verifyOtp(normalizedPhone, code);
+      await signIn(result);
       router.back();
     });
   }
 
+  async function signInWithApple() {
+    try {
+      const credential = await AppleAuthentication.signInAsync();
+      if (!credential.identityToken) throw new Error('Apple không trả về thông tin đăng nhập. Bạn thử lại nhé.');
+      await run(async () => {
+        const result = await api.signInWithApple(credential.identityToken!, credential.authorizationCode);
+        await signIn(result);
+        router.back();
+      });
+    } catch (e) {
+      if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') return;
+      setError(e instanceof Error ? e.message : 'Đăng nhập Apple không thành công. Bạn thử lại nhé.');
+    }
+  }
+
+  const heading =
+    step === 'otp'
+      ? `Nhập mã 6 số gửi tới ${normalizedPhone}`
+      : isLink
+        ? 'Thêm số điện thoại để rút tiền hoàn'
+        : 'Đăng nhập để nhận hoàn tiền';
+
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Stack.Screen options={{ title: isLink ? 'Thêm số điện thoại' : 'Đăng nhập' }} />
       <View style={styles.content}>
-        <Text style={styles.heading}>
-          {step === 'phone' ? 'Nhập số điện thoại để nhận hoàn tiền' : `Nhập mã 6 số gửi tới ${normalizedPhone}`}
-        </Text>
+        <Text style={styles.heading}>{heading}</Text>
+
+        {step === 'phone' && appleAvailable ? (
+          <>
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={Radius.md}
+              style={styles.appleButton}
+              onPress={signInWithApple}
+            />
+            <Text style={styles.divider}>hoặc dùng số điện thoại</Text>
+          </>
+        ) : null}
 
         {step === 'phone' ? (
           <TextInput
@@ -68,7 +116,6 @@ export default function LoginScreen() {
             textContentType="telephoneNumber"
             style={styles.input}
             accessibilityLabel="Số điện thoại"
-            autoFocus
           />
         ) : (
           <TextInput
@@ -104,6 +151,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.xl, gap: Spacing.lg },
   heading: { color: Colors.text, fontSize: FontSize.title, fontWeight: '800', lineHeight: 28 },
+  appleButton: { height: 48, width: '100%' },
+  divider: { color: Colors.textSecondary, fontSize: FontSize.body, textAlign: 'center' },
   input: {
     backgroundColor: Colors.card,
     borderRadius: Radius.md,

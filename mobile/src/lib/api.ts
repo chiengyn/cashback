@@ -9,10 +9,12 @@
  *   GET  /api/wallet                → Wallet
  *   POST /api/withdrawals           WithdrawalRequest
  *   POST /api/auth/otp              { phone }
- *   POST /api/auth/verify           { phone, code } → { token }
+ *   POST /api/auth/verify           { phone, code } → { token, phone }  (kèm token Apple: gắn SĐT vào tài khoản)
+ *   POST /api/auth/apple            { identityToken, authorizationCode } → { token, phone }
+ *   DELETE /api/account
  */
 import { mockApi } from '@/lib/mock';
-import type { LinkPreview, Order, RecentLink, Wallet, WithdrawalRequest } from '@/lib/types';
+import type { LinkPreview, Order, RecentLink, SignInResult, Wallet, WithdrawalRequest } from '@/lib/types';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const TIMEOUT_MS = 10_000;
@@ -32,7 +34,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+async function request<T>(method: 'GET' | 'POST' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -68,8 +70,10 @@ const httpApi = {
   wallet: () => request<Wallet>('GET', '/api/wallet'),
   requestWithdrawal: (req: WithdrawalRequest) => request<void>('POST', '/api/withdrawals', req),
   sendOtp: (phone: string) => request<void>('POST', '/api/auth/otp', { phone }),
-  verifyOtp: (phone: string, code: string) =>
-    request<{ token: string }>('POST', '/api/auth/verify', { phone, code }),
+  verifyOtp: (phone: string, code: string) => request<SignInResult>('POST', '/api/auth/verify', { phone, code }),
+  signInWithApple: (identityToken: string, authorizationCode: string | null) =>
+    request<SignInResult>('POST', '/api/auth/apple', { identityToken, authorizationCode }),
+  deleteAccount: () => request<void>('DELETE', '/api/account'),
 };
 
 export const api: typeof httpApi = BASE_URL ? httpApi : mockApi;

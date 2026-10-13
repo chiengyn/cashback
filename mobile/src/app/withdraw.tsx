@@ -5,9 +5,11 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput
 import { Button, Note } from '@/components/ui';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { api } from '@/lib/api';
+import { useSession } from '@/lib/session';
 import { formatVnd } from '@/lib/format';
 
 export default function WithdrawScreen() {
+  const { session } = useSession();
   const [amount, setAmount] = useState('');
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
@@ -34,6 +36,16 @@ export default function WithdrawScreen() {
     } finally {
       setIsBusy(false);
     }
+  }
+
+  // Tài khoản Apple phải thêm số điện thoại trước (một số điện thoại một tài khoản nhận tiền).
+  if (session && !session.phone) {
+    return (
+      <View style={[styles.screen, styles.content]}>
+        <Note>Bạn cần thêm số điện thoại vào tài khoản trước khi rút tiền.</Note>
+        <Button label="Thêm số điện thoại" onPress={() => router.replace({ pathname: '/login', params: { mode: 'link' } })} />
+      </View>
+    );
   }
 
   return (

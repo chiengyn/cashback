@@ -68,6 +68,7 @@ export type WithdrawalInput = { amount: number; bankName: string; accountNumber:
  * kiểm tra số dư khả dụng rồi ghi lệnh rút và bút toán trừ tiền trong cùng transaction.
  */
 export async function requestWithdrawal(user: AuthUser, input: WithdrawalInput): Promise<void> {
+  if (!user.phone) throw new HttpError(403, 'Bạn cần thêm số điện thoại trước khi rút tiền.');
   const min = env().MIN_WITHDRAWAL;
   if (input.amount < min) throw new HttpError(400, `Số tiền rút tối thiểu là ${min.toLocaleString('vi-VN')}₫.`);
 

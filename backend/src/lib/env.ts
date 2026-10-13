@@ -13,6 +13,13 @@ const schema = z.object({
   SHOPEE_SECRET: z.string().optional(),
   /** `console`: in mã OTP ra log, chỉ dùng khi phát triển. */
   SMS_PROVIDER: z.enum(['console']).default('console'),
+  /** Sign in with Apple: bundle id của app iOS, dùng làm `aud` khi kiểm tra token và `client_id` khi gọi API Apple. */
+  APPLE_BUNDLE_ID: z.string().default('vn.hoantien.app'),
+  /** Để đổi authorization code lấy refresh token và thu hồi khi xoá tài khoản. Thiếu thì bỏ qua bước thu hồi. */
+  APPLE_TEAM_ID: z.string().optional(),
+  APPLE_KEY_ID: z.string().optional(),
+  /** Nội dung file .p8; xuống dòng có thể viết thành \n. */
+  APPLE_PRIVATE_KEY: z.string().optional(),
   MIN_WITHDRAWAL: z.coerce.number().int().positive().default(50_000),
   /** Số ngày giữ tiền sau khi đơn hoàn tất (hết hạn đổi trả) rồi mới cho rút. */
   APPROVAL_HOLD_DAYS: z.coerce.number().int().nonnegative().default(30),

@@ -215,10 +215,11 @@ html { scroll-behavior: smooth; }
       <h1>App hoàn tiền khi mua trên Shopee, Lazada, TikTok Shop</h1>
       <p class="lede">Người dùng dán link sản phẩm, hệ thống đổi sang link affiliate có gắn mã của mình kèm mã theo dõi riêng, rồi chuyển họ tới trang sản phẩm. Khi sàn duyệt đơn, một phần hoa hồng được cộng vào ví của người dùng.</p>
       <div class="meta">
-        <span><b>Trạng thái:</b> đã có code app mobile (dữ liệu mẫu), chưa có backend</span>
+        <span><b>Trạng thái:</b> đã có code app mobile và backend, chưa chạy với tài khoản sàn thật</span>
         <span><b>Cập nhật:</b> 13/10/2026 (bản 3)</span>
         <span><b>Cần review:</b> mục 2, 3, 5 và câu hỏi ở mục 8</span>
       </div>
+      <div class="changes"><b>Bản 4:</b> thêm Sign in with Apple (bên cạnh SĐT + OTP) và nút xoá tài khoản ngay trong app, để qua duyệt App Store. Tài khoản Apple phải thêm số điện thoại trước khi rút tiền. Khi xoá tài khoản, backend thu hồi quyền Sign in with Apple như Apple yêu cầu.</div>
       <div class="changes"><b>Bản 3:</b> người dùng tải app từ App Store / Google Play thay vì dùng PWA. Thêm mục 5 về app React Native (Expo) đã viết trong thư mục <code>mobile/</code>. Nút “Mua ngay” trong app mở thẳng link affiliate để app sàn bắt được universal link. Share extension trên iOS có ngay từ MVP.</div>
       <div class="changes"><b>Bản 2:</b> stack rút gọn còn Next.js trên Vercel và một Postgres. Bỏ Redis và Cloudflare: cache và rate limit dùng bảng có index. Đồng bộ đơn chạy bằng Vercel Cron, khoá chống chạy trùng bằng bảng <code>cron_jobs</code>. Giao diện app chuyển sang tông màu sáng kiểu sàn thương mại điện tử.</div>
       <div class="linkflow" aria-label="Ví dụ link trước và sau khi đổi">
@@ -250,7 +251,8 @@ html { scroll-behavior: smooth; }
           <ul>
             <li>App iOS / Android (React Native) trên App Store và Google Play</li>
             <li>Dán link hoặc chia sẻ từ app sàn → xem trước → chuyển tới sàn</li>
-            <li>Đăng nhập (Zalo / Google / SĐT)</li>
+            <li>Đăng nhập bằng SĐT + OTP, hoặc Sign in with Apple trên iPhone</li>
+            <li>Xoá tài khoản ngay trong app</li>
             <li>Đồng bộ đơn từ sàn, hiển thị trạng thái</li>
             <li>Ví, yêu cầu rút tiền, admin duyệt và chuyển khoản thủ công</li>
           </ul>
@@ -712,7 +714,7 @@ WHERE name = $1 AND locked_by = $2;</code></pre>
 
       <h3>Quyết định UX cần chốt</h3>
       <ul>
-        <li><b>Bắt đăng nhập lúc nào.</b> Đề xuất: cho dán và xem preview không cần tài khoản; bắt đăng nhập một chạm (Zalo hoặc Google) khi bấm “Mua ngay”. Không gắn được user thì không trả được tiền.</li>
+        <li><b>Bắt đăng nhập lúc nào.</b> Đề xuất: cho dán và xem preview không cần tài khoản; bắt đăng nhập (SĐT + OTP, hoặc một chạm bằng Apple trên iPhone) khi bấm “Mua ngay”. Tài khoản Apple chỉ cần thêm số điện thoại khi rút tiền lần đầu, để giữ quy tắc một số điện thoại một tài khoản nhận tiền. Không gắn được user thì không trả được tiền.</li>
         <li><b>Hiển thị số tiền hoàn bằng đồng</b> thay vì phần trăm, kèm chữ “ước tính” vì sàn có thể điều chỉnh.</li>
         <li><b>Trang “Vì sao đơn chưa được ghi nhận?”</b> với các nguyên nhân hay gặp: bấm link affiliate khác sau đó, mở link trong trình duyệt của Facebook/Zalo, dùng voucher không hợp lệ cho affiliate, thanh toán sau quá lâu.</li>
         <li><b>Dự kiến ngày duyệt</b> cho từng đơn để giảm câu hỏi hỗ trợ.</li>
@@ -734,6 +736,7 @@ WHERE name = $1 AND locked_by = $2;</code></pre>
             <tr><td>Nhận link chia sẻ</td><td><code>expo-share-intent</code></td><td>Tạo share extension iOS và intent filter Android khi build; không chạy trong Expo Go</td></tr>
             <tr><td>Clipboard</td><td><code>expo-clipboard</code></td><td>Gợi ý dán link vừa copy</td></tr>
             <tr><td>Lưu đăng nhập</td><td><code>expo-secure-store</code></td><td>Token nằm trong Keychain / Keystore</td></tr>
+            <tr><td>Sign in with Apple</td><td><code>expo-apple-authentication</code></td><td>Nút Apple chỉ hiện trên iOS; backend kiểm tra chữ ký token bằng khoá công khai của Apple</td></tr>
             <tr><td>Giao diện</td><td><code>expo-linear-gradient</code>, <code>expo-image</code></td><td>Header và nút gradient cam hồng, ảnh sản phẩm có cache</td></tr>
           </tbody>
         </table>
@@ -797,7 +800,9 @@ async function buyNow() {
             <tr><td><code>GET /api/links/recent</code></td><td>Trang chủ: link gần đây</td></tr>
             <tr><td><code>GET /api/orders</code></td><td>Tab Đơn hàng</td></tr>
             <tr><td><code>GET /api/wallet</code>, <code>POST /api/withdrawals</code></td><td>Tab Ví, màn Rút tiền</td></tr>
-            <tr><td><code>POST /api/auth/otp</code>, <code>POST /api/auth/verify</code></td><td>Đăng nhập; trả token, app gửi kèm header <code>Authorization: Bearer</code></td></tr>
+            <tr><td><code>POST /api/auth/otp</code>, <code>POST /api/auth/verify</code></td><td>Đăng nhập bằng SĐT; trả token, app gửi kèm header <code>Authorization: Bearer</code>. Gửi kèm token tài khoản Apple thì gắn SĐT vào tài khoản đó</td></tr>
+            <tr><td><code>POST /api/auth/apple</code></td><td>Sign in with Apple</td></tr>
+            <tr><td><code>DELETE /api/account</code></td><td>Xoá tài khoản: bỏ SĐT và liên kết Apple, xoá phiên đăng nhập, thu hồi token Apple</td></tr>
           </tbody>
         </table>
       </div>
@@ -807,7 +812,7 @@ async function buyNow() {
         <li><b>Tài khoản:</b> Apple Developer Program (99 USD/năm) và Google Play Console (25 USD một lần). Đặt <code>bundleIdentifier</code> / <code>package</code> trong <code>app.json</code>, hiện để tạm <code>vn.hoantien.app</code>.</li>
         <li><b>Chạy thử trên máy:</b> <code>npx expo run:android</code> hoặc build development trên cloud với <code>eas build --profile development</code>.</li>
         <li><b>Bản thử cho người dùng:</b> <code>eas build --profile production</code> rồi <code>eas submit</code> lên TestFlight (iOS) và track thử nghiệm của Google Play. Tài khoản Google Play cá nhân mới phải chạy closed testing với một số lượng người thử tối thiểu trong một khoảng thời gian trước khi lên production <span class="verify">Cần xác minh</span>.</li>
-        <li><b>Gửi duyệt:</b> kèm tài khoản demo, giải thích cơ chế hoàn tiền và việc app mở link sang app sàn. Cần có trang chính sách quyền riêng tư và cách xoá tài khoản ngay trong app (cả hai store đều yêu cầu).</li>
+        <li><b>Gửi duyệt:</b> kèm tài khoản demo, giải thích cơ chế hoàn tiền và việc app mở link sang app sàn. Cần có trang chính sách quyền riêng tư và nút xoá tài khoản ngay trong app (cả hai store đều yêu cầu; app đã có ở tab Tôi). Bật capability Sign in with Apple cho App ID và tạo khoá .p8 để backend thu hồi token khi người dùng xoá tài khoản.</li>
         <li><b>Cập nhật sau phát hành:</b> sửa lỗi chỉ ở phần JavaScript thì đẩy bằng EAS Update, không phải chờ duyệt lại; thay đổi native (thêm thư viện, quyền mới) thì build và gửi duyệt lại.</li>
       </ol>
 
@@ -815,7 +820,6 @@ async function buyNow() {
         <p><b>Còn thiếu trong khung app hiện tại</b></p>
         <ul>
           <li>Icon và splash vẫn là ảnh mặc định của Expo</li>
-          <li>Nút xoá tài khoản trong tab Tôi (bắt buộc để qua duyệt store)</li>
           <li>Push notification khi đơn được duyệt hoặc tiền về ví</li>
           <li>Màn hình xem trước dùng dữ liệu mẫu cho đến khi có <code>POST /api/links</code> thật</li>
         </ul>
@@ -909,7 +913,7 @@ async function buyNow() {
         <li>Tích hợp trực tiếp API từng sàn hay đi qua một network ngay từ đầu? Có ai trong nhóm đã có tài khoản Shopee Affiliate được cấp Open API chưa?</li>
         <li>Bắt đăng nhập khi bấm “Mua ngay” có làm rơi nhiều người dùng không? Phương án thay thế là gắn click theo thiết bị và cho “nhận” đơn sau khi đăng nhập.</li>
         <li>Tỉ lệ chia 70% cho người dùng có hợp lý so với các app hoàn tiền đang có trên thị trường?</li>
-        <li>Đăng nhập bằng SĐT + OTP (tốn phí SMS) hay thêm Zalo / Google? Nếu có đăng nhập bằng tài khoản bên thứ ba, App Store yêu cầu có thêm một lựa chọn đăng nhập bảo vệ quyền riêng tư như Sign in with Apple.</li>
+        <li>MVP đăng nhập bằng SĐT + OTP (tốn phí SMS) và Sign in with Apple. Có nên thêm Zalo / Google không? Nếu thêm, Sign in with Apple đã có sẵn nên vẫn đáp ứng quy định 4.8 của App Store.</li>
         <li>Cron 30 phút một lần có đủ không, hay người dùng mong thấy đơn gần như ngay sau khi đặt?</li>
         <li>Có cần làm kênh Zalo OA / bot ngay từ MVP không, vì người dùng Việt quen gửi link qua chat?</li>
       </ol>

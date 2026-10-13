@@ -1,9 +1,10 @@
 import { and, count, desc, eq, gt, isNull } from 'drizzle-orm';
 
-import { db, schema } from '@/db';
+import { db, schema, type Tx } from '@/db';
 import { keyedHash, newOtpCode, newSessionToken, safeEqual, sha256 } from '@/lib/crypto';
 import { HttpError } from '@/lib/http';
 import { sendSms } from '@/lib/sms';
+import { exchangeAuthorizationCode, revokeRefreshToken, verifyIdentityToken } from './apple';
 
 const { users, sessions, otpCodes } = schema;
 
@@ -21,7 +22,7 @@ export function normalizePhone(input: string): string | null {
   return /^0(3|5|7|8|9)\d{8}$/.test(local) ? local : null;
 }
 
-const otpHash = (phone: string, code: string) => keyedHash(`otp:${phone}:${code}`);
+export const otpHash = (phone: string, code: string) => keyedHash(`otp:${phone}:${code}`);
 
 export async function requestOtp(phone: string, ipHash: string | null): Promise<void> {
   const hourAgo = new Date(Date.now() - 3_600_000);
@@ -46,8 +47,14 @@ export async function requestOtp(phone: string, ipHash: string | null): Promise<
   await sendSms(phone, `${code} la ma dang nhap HoanTien. Ma het han sau 5 phut. Khong chia se ma nay cho ai.`);
 }
 
-/** Kiểm tra mã mới nhất của số điện thoại; đúng thì tạo user (nếu chưa có) và session. */
-export async function verifyOtp(phone: string, code: string): Promise<{ token: string }> {
+export type SignInResult = { token: string; phone: string | null };
+
+/**
+ * Kiểm tra mã mới nhất của số điện thoại.
+ * - Chưa đăng nhập: tạo user (nếu chưa có) và session.
+ * - Đã đăng nhập bằng Apple (`linkTo`): gắn số điện thoại vào tài khoản đó.
+ */
+export async function verifyOtp(phone: string, code: string, linkTo: AuthUser | null = null): Promise<SignInResult> {
   const [otp] = await db()
     .select()
     .from(otpCodes)
@@ -70,20 +77,56 @@ export async function verifyOtp(phone: string, code: string): Promise<{ token: s
       .returning({ id: otpCodes.id });
     if (consumed.length === 0) throw invalid;
 
+    if (linkTo) {
+      if (linkTo.phone && linkTo.phone !== phone) throw new HttpError(409, 'Tài khoản này đã có số điện thoại khác.');
+      const [owner] = await tx.select({ id: users.id }).from(users).where(eq(users.phone, phone));
+      if (owner && owner.id !== linkTo.id) {
+        throw new HttpError(409, 'Số điện thoại này đã gắn với tài khoản khác. Đăng xuất rồi đăng nhập bằng số này.');
+      }
+      await tx.update(users).set({ phone }).where(eq(users.id, linkTo.id));
+      return { token: await createSession(tx, linkTo.id), phone };
+    }
+
     const [user] = await tx
       .insert(users)
       .values({ phone })
       .onConflictDoUpdate({ target: users.phone, set: { phone } })
       .returning({ id: users.id, status: users.status });
-    if (user!.status !== 'active') throw new HttpError(403, 'Tài khoản này đang bị khoá. Liên hệ hỗ trợ để được giúp.');
-
-    const token = newSessionToken();
-    await tx.insert(sessions).values({ userId: user!.id, tokenHash: sha256(token), expiresAt: new Date(Date.now() + SESSION_TTL_MS) });
-    return { token };
+    assertActive(user!.status);
+    return { token: await createSession(tx, user!.id), phone };
   });
 }
 
-export type AuthUser = { id: string; phone: string; shareBps: number };
+/**
+ * Sign in with Apple: tài khoản gắn với `sub` của Apple. Tài khoản mới chưa có số điện thoại,
+ * phải thêm (qua OTP) trước khi rút tiền để giữ quy tắc một số điện thoại một tài khoản nhận tiền.
+ */
+export async function signInWithApple(input: { identityToken: string; authorizationCode: string | null }): Promise<SignInResult> {
+  const { sub } = await verifyIdentityToken(input.identityToken);
+  const refreshToken = input.authorizationCode ? await exchangeAuthorizationCode(input.authorizationCode) : null;
+
+  return db().transaction(async (tx) => {
+    const [user] = await tx
+      .insert(users)
+      .values({ appleSub: sub, appleRefreshToken: refreshToken })
+      .onConflictDoUpdate({ target: users.appleSub, set: refreshToken ? { appleRefreshToken: refreshToken } : { appleSub: sub } })
+      .returning({ id: users.id, status: users.status, phone: users.phone });
+    assertActive(user!.status);
+    return { token: await createSession(tx, user!.id), phone: user!.phone };
+  });
+}
+
+function assertActive(status: string) {
+  if (status !== 'active') throw new HttpError(403, 'Tài khoản này đang bị khoá. Liên hệ hỗ trợ để được giúp.');
+}
+
+async function createSession(tx: Tx, userId: string): Promise<string> {
+  const token = newSessionToken();
+  await tx.insert(sessions).values({ userId, tokenHash: sha256(token), expiresAt: new Date(Date.now() + SESSION_TTL_MS) });
+  return token;
+}
+
+export type AuthUser = { id: string; phone: string | null; shareBps: number };
 
 /** Đọc `Authorization: Bearer <token>`; null nếu không có hoặc token không hợp lệ. */
 export async function currentUser(req: Request): Promise<AuthUser | null> {
@@ -105,12 +148,19 @@ export async function requireUser(req: Request): Promise<AuthUser> {
 }
 
 /**
- * Xoá tài khoản (bắt buộc với App Store / Google Play): ẩn danh số điện thoại, xoá mọi session.
- * Đơn và sổ cái được giữ lại để đối soát với sàn; số dư chưa rút không còn được trả.
+ * Xoá tài khoản (bắt buộc với App Store / Google Play): bỏ số điện thoại và liên kết Apple, xoá mọi session,
+ * rồi thu hồi quyền Sign in with Apple. Đơn và sổ cái được giữ lại để đối soát với sàn;
+ * số dư chưa rút không còn được trả. Đăng nhập lại bằng cùng số / cùng Apple ID sẽ tạo tài khoản mới.
  */
-export async function deleteAccount(userId: string): Promise<void> {
-  await db().transaction(async (tx) => {
+export async function deleteAccount(userId: string, revoke: (token: string) => Promise<void> = revokeRefreshToken): Promise<void> {
+  const refreshToken = await db().transaction(async (tx) => {
+    const [user] = await tx.select({ appleRefreshToken: users.appleRefreshToken }).from(users).where(eq(users.id, userId)).for('update');
     await tx.delete(sessions).where(eq(sessions.userId, userId));
-    await tx.update(users).set({ phone: `deleted:${userId}`, status: 'deleted', deletedAt: new Date() }).where(eq(users.id, userId));
+    await tx
+      .update(users)
+      .set({ phone: null, appleSub: null, appleRefreshToken: null, status: 'deleted', deletedAt: new Date() })
+      .where(eq(users.id, userId));
+    return user?.appleRefreshToken ?? null;
   });
+  if (refreshToken) await revoke(refreshToken);
 }

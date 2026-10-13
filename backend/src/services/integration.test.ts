@@ -5,21 +5,42 @@
  */
 import { eq, sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { db, schema } from '@/db';
 import { newSessionToken, sha256 } from '@/lib/crypto';
 import { MockAdapter } from '@/platforms/mock';
-import type { AuthUser } from './auth';
+import { deleteAccount, otpHash, signInWithApple, verifyOtp, type AuthUser } from './auth';
 import { applyConversion, balanceOf } from './conversions';
 import { acquireLock, releaseLock } from './cron-lock';
 import { createLinkPreview, openClick } from './links';
 import { syncPlatform } from './sync-orders';
 import { markWithdrawalPaid, rejectWithdrawal, requestWithdrawal } from './wallet';
 
+// Không gọi Apple thật: identity token giả có dạng "apple:<sub>".
+vi.mock('./apple', () => ({
+  verifyIdentityToken: async (token: string) => ({ sub: token.replace('apple:', '') }),
+  exchangeAuthorizationCode: async (code: string) => `refresh-for-${code}`,
+  revokeRefreshToken: async () => {},
+}));
+
 const enabled = !!process.env.TEST_DATABASE_URL;
 const PRODUCT_URL = 'https://shopee.vn/Tai-nghe-i.88201234.23456789012';
 const opts = () => ({ now: new Date(), deadline: Date.now() + 60_000, holdDays: 30 });
+
+async function issueOtp(phone: string, code = '123456') {
+  await db().insert(schema.otpCodes).values({ phone, codeHash: otpHash(phone, code), expiresAt: new Date(Date.now() + 60_000) });
+  return code;
+}
+
+async function userOf(token: string): Promise<AuthUser> {
+  const [row] = await db()
+    .select({ id: schema.users.id, phone: schema.users.phone, shareBps: schema.users.shareBps })
+    .from(schema.sessions)
+    .innerJoin(schema.users, eq(schema.users.id, schema.sessions.userId))
+    .where(eq(schema.sessions.tokenHash, sha256(token)));
+  return row!;
+}
 
 async function createUser(phone = '0912345678'): Promise<AuthUser & { token: string }> {
   const [user] = await db().insert(schema.users).values({ phone }).returning();
@@ -153,6 +174,61 @@ describe.skipIf(!enabled)('integration', () => {
       const user = await userWithBalance(18_900);
       await expect(requestWithdrawal(user, input(5_000))).rejects.toMatchObject({ status: 400 });
       await expect(requestWithdrawal(user, input(20_000))).rejects.toMatchObject({ message: 'Số dư khả dụng không đủ.' });
+    });
+  });
+
+  describe('đăng nhập và xoá tài khoản', () => {
+    it('OTP: tạo tài khoản lần đầu, đăng nhập lại vào đúng tài khoản đó', async () => {
+      const first = await verifyOtp('0912345678', await issueOtp('0912345678'));
+      const second = await verifyOtp('0912345678', await issueOtp('0912345678', '654321'));
+      expect(first.phone).toBe('0912345678');
+      expect((await userOf(first.token)).id).toBe((await userOf(second.token)).id);
+    });
+
+    it('OTP: mã đã dùng không dùng lại được', async () => {
+      const code = await issueOtp('0912345678');
+      await verifyOtp('0912345678', code);
+      await expect(verifyOtp('0912345678', code)).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('Apple: tài khoản chưa có SĐT không rút được tiền cho tới khi gắn SĐT', async () => {
+      const signedIn = await signInWithApple({ identityToken: 'apple:001.sub', authorizationCode: 'c1' });
+      expect(signedIn.phone).toBeNull();
+      const user = await userOf(signedIn.token);
+      await db().insert(schema.ledgerEntries).values({ userId: user.id, type: 'withdrawal_refund', availableDelta: 50_000, label: 'seed' });
+      const input = { amount: 20_000, bankName: 'ACB', accountNumber: '0123456789', accountName: 'A' };
+      await expect(requestWithdrawal(user, input)).rejects.toMatchObject({ status: 403 });
+
+      const linked = await verifyOtp('0987654321', await issueOtp('0987654321'), user);
+      expect(linked.phone).toBe('0987654321');
+      await requestWithdrawal(await userOf(linked.token), input);
+
+      // Đăng nhập lại bằng Apple vào đúng tài khoản cũ, giờ đã có SĐT.
+      const again = await signInWithApple({ identityToken: 'apple:001.sub', authorizationCode: null });
+      expect(again.phone).toBe('0987654321');
+    });
+
+    it('Apple: không gắn được SĐT đang thuộc tài khoản khác', async () => {
+      await createUser('0911111111');
+      const apple = await userOf((await signInWithApple({ identityToken: 'apple:002.sub', authorizationCode: null })).token);
+      await expect(verifyOtp('0911111111', await issueOtp('0911111111'), apple)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('xoá tài khoản: xoá session, thu hồi token Apple, đăng nhập lại tạo tài khoản mới', async () => {
+      const signedIn = await signInWithApple({ identityToken: 'apple:003.sub', authorizationCode: 'c3' });
+      const user = await userOf(signedIn.token);
+      const revoked: string[] = [];
+      await deleteAccount(user.id, async (t) => {
+        revoked.push(t);
+      });
+
+      expect(revoked).toEqual(['refresh-for-c3']);
+      expect(await db().select().from(schema.sessions).where(eq(schema.sessions.userId, user.id))).toHaveLength(0);
+      const [row] = await db().select().from(schema.users).where(eq(schema.users.id, user.id));
+      expect(row).toMatchObject({ status: 'deleted', phone: null, appleSub: null, appleRefreshToken: null });
+
+      const fresh = await userOf((await signInWithApple({ identityToken: 'apple:003.sub', authorizationCode: null })).token);
+      expect(fresh.id).not.toBe(user.id);
     });
   });
 

@@ -41,12 +41,13 @@ Integration test xoá sạch dữ liệu (TRUNCATE) trong database đó, đừng
 | Endpoint | Đăng nhập | Ghi chú |
 |---|---|---|
 | `POST /api/auth/otp` `{ phone }` | | Giới hạn 1 mã/phút, 5 mã/giờ mỗi số, 10 mã/giờ mỗi IP |
-| `POST /api/auth/verify` `{ phone, code }` | | Trả `{ token }`, dùng làm `Authorization: Bearer` |
+| `POST /api/auth/verify` `{ phone, code }` | không bắt buộc | Trả `{ token, phone }`, dùng làm `Authorization: Bearer`. Gửi kèm token của tài khoản Apple thì gắn số điện thoại vào tài khoản đó |
+| `POST /api/auth/apple` `{ identityToken, authorizationCode }` | | Sign in with Apple; tài khoản mới có `phone: null` |
 | `POST /api/links` `{ url }` | không bắt buộc | Nhận cả đoạn chữ chia sẻ; dùng lại click nếu cùng user dán cùng sản phẩm trong 24 giờ |
 | `POST /api/clicks/{id}/open` | có | Ghi lượt bấm, trả `{ affiliateUrl }`; gắn click ẩn danh cho user |
 | `GET /api/links/recent`, `/api/orders`, `/api/wallet` | có | |
-| `POST /api/withdrawals` | có | Khoá dòng user để hai lệnh rút cùng lúc không tiêu chung số dư |
-| `DELETE /api/account` | có | Ẩn danh SĐT, xoá session (yêu cầu của App Store / Google Play) |
+| `POST /api/withdrawals` | có | Cần có số điện thoại; khoá dòng user để hai lệnh rút cùng lúc không tiêu chung số dư |
+| `DELETE /api/account` | có | Bỏ SĐT và liên kết Apple, xoá session, thu hồi token Apple (yêu cầu của App Store / Google Play) |
 | `GET /r/{clickId}` | | 302 sang link affiliate, cho link mở bằng trình duyệt |
 | `GET /api/cron/sync-orders/{purchase\|complete\|reconcile}` | `CRON_SECRET` | Lịch trong `vercel.json` |
 | `GET /api/health` | | Kiểm tra cả kết nối database |
@@ -67,6 +68,7 @@ Ba cron, mỗi sàn một khoá riêng trong bảng `cron_jobs` (`<platform>:<mo
 
 - **Shopee:** tên field, cách ký và các giá trị trạng thái trong `src/platforms/shopee.ts` lấy từ tài liệu bên thứ ba. Cần đối chiếu với tài liệu chính thức và thử với tài khoản affiliate thật.
 - **Lazada, TikTok Shop:** chưa có adapter thật; ở chế độ `live`, API trả lỗi "Chưa hỗ trợ hoàn tiền cho …".
+- **Sign in with Apple:** bật capability cho App ID, tạo khoá .p8 và điền `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`; chưa thử với Apple thật (test dùng khoá tự sinh).
 - **SMS:** chỉ có `console`. Cần chọn nhà cung cấp SMS brandname và thêm vào `src/lib/sms.ts`.
 
 ## Deploy

@@ -3,7 +3,7 @@
  * Mọi hàm có cùng chữ ký với bản gọi API thật trong api.ts.
  */
 import { detectPlatform, type Platform } from '@/lib/links';
-import type { LinkPreview, Order, RecentLink, Wallet, WithdrawalRequest } from '@/lib/types';
+import type { LinkPreview, Order, RecentLink, SignInResult, Wallet, WithdrawalRequest } from '@/lib/types';
 
 const SHARE_RATE = 0.7;
 const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -104,9 +104,18 @@ export const mockApi = {
     await delay();
   },
 
-  async verifyOtp(_phone: string, code: string): Promise<{ token: string }> {
+  async verifyOtp(phone: string, code: string): Promise<SignInResult> {
     await delay();
     if (!/^\d{6}$/.test(code)) throw new Error('Mã OTP gồm 6 chữ số.');
-    return { token: `mock-${randomId(16)}` };
+    return { token: `mock-${randomId(16)}`, phone };
+  },
+
+  async signInWithApple(_identityToken: string, _authorizationCode: string | null): Promise<SignInResult> {
+    await delay();
+    return { token: `mock-apple-${randomId(16)}`, phone: null };
+  },
+
+  async deleteAccount(): Promise<void> {
+    await delay();
   },
 };

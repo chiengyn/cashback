@@ -3,7 +3,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 
 import { setAuthToken } from '@/lib/api';
 
-type Session = { token: string; phone: string };
+/** phone = null: đăng nhập bằng Apple, chưa thêm số điện thoại. */
+type Session = { token: string; phone: string | null };
 
 type SessionContextValue = {
   session: Session | null;

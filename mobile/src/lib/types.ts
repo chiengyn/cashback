@@ -51,6 +51,9 @@ export type Wallet = {
   entries: LedgerEntry[];
 };
 
+/** phone = null: tài khoản đăng nhập bằng Apple chưa thêm số điện thoại. */
+export type SignInResult = { token: string; phone: string | null };
+
 export type WithdrawalRequest = {
   amount: number;
   bankName: string;

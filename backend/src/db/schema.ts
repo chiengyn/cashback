@@ -17,7 +17,12 @@ const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull(
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  phone: text('phone').notNull().unique(),
+  /** null với tài khoản đăng nhập bằng Apple chưa thêm số điện thoại (phải thêm trước khi rút tiền). */
+  phone: text('phone').unique(),
+  /** `sub` trong identity token của Sign in with Apple. */
+  appleSub: text('apple_sub').unique(),
+  /** Refresh token Apple, dùng để thu hồi quyền khi người dùng xoá tài khoản (Apple yêu cầu). */
+  appleRefreshToken: text('apple_refresh_token'),
   /** Phần hoa hồng chia cho người dùng, tính theo phần vạn: 7000 = 70%. */
   shareBps: integer('share_bps').notNull().default(7000),
   status: text('status', { enum: ['active', 'blocked', 'deleted'] }).notNull().default('active'),
