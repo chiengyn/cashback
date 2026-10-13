@@ -1,0 +1,46 @@
+:root {
+  --primary: #ff5b2e;
+  --bg: #fff4ef;
+  --card: #ffffff;
+  --text: #231a16;
+  --muted: #85766f;
+  --border: #f3e3dc;
+  --warn: #b3261e;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+a { color: var(--primary); }
+code { font-family: ui-monospace, monospace; font-size: 0.9em; }
+
+.landing { max-width: 560px; margin: 0 auto; padding: 64px 16px; }
+.landing h1 { color: var(--primary); font-size: 2.4rem; margin: 0 0 8px; }
+
+.admin { min-height: 100vh; }
+.admin-nav { display: flex; gap: 20px; align-items: center; padding: 12px 24px; background: var(--card); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.admin main { padding: 16px 24px 48px; max-width: 1280px; }
+.admin h1 { margin: 8px 0 16px; }
+.admin h2 { margin: 32px 0 8px; font-size: 1.15rem; }
+.muted { color: var(--muted); }
+.warn { color: var(--warn); font-weight: 600; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; }
+.stat span { color: var(--muted); font-size: 0.85rem; }
+.stat b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.stat.warn b { color: var(--warn); }
+
+table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 0.9rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; background: #fffaf7; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions form { display: flex; gap: 6px; }
+button { border: 0; border-radius: 6px; padding: 6px 12px; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; }
+button.danger { background: var(--warn); }
+input { border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; }

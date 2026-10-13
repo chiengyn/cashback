@@ -1,0 +1,8 @@
+{
+  "regions": ["sin1"],
+  "crons": [
+    { "path": "/api/cron/sync-orders/purchase", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/sync-orders/complete", "schedule": "15,45 * * * *" },
+    { "path": "/api/cron/sync-orders/reconcile", "schedule": "10 20 * * *" }
+  ]
+}
